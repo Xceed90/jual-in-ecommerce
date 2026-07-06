@@ -182,12 +182,19 @@
 
             </div>
 
-            <div class="mb-6 flex items-center justify-between mt-8">
-                <div>
-                    <h2 class="text-lg font-bold text-slate-900">📦 Daftar Pesanan Masuk</h2>
-                    <p class="text-sm text-slate-500">Pantau dan proses pesanan dari pelanggan Anda.</p>
-                </div>
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-4 gap-4">
+            <div>
+                <h2 class="text-xl font-bold text-gray-800">📦 Daftar Pesanan Masuk</h2>
+                <p class="text-sm text-gray-500 mt-1">Pantau dan proses pesanan dari pelanggan Anda.</p>
             </div>
+            
+            <a href="{{ route('vendor.laporan.export') }}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-5 rounded-xl text-sm transition flex items-center gap-2 shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Ekspor ke Excel (.CSV)
+            </a>
+        </div>
 
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-12">
                 <div class="overflow-x-auto">

@@ -17,6 +17,7 @@ Route::get('/logout', [AuthController::class, 'logout']);
 
 // --- KATALOG (Bisa diakses siapa saja) ---
 Route::get('/', [ProdukController::class, 'index']);
+Route::get('/produk/{id}', [ProdukController::class, 'show'])->name('produk.detail');
 
 // Rute untuk Registrasi Akun Baru
 Route::get('/register', [AuthController::class, 'showRegister']);
@@ -48,7 +49,7 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     Route::post('/checkout', [OrderController::class, 'checkout']);
     Route::get('/orders', [OrderController::class, 'index']);
-    // 👇 UBAH BARIS INI (Tambahkan name di ujungnya) 👇
+    // 👇 BARIS INI (Tambahkan name di ujungnya) 👇
     Route::post('/orders/rating/{id_detail_order}/{id_produk}', [OrderController::class, 'beriRating'])->name('beri.rating');
     Route::post('/orders/bayar/{id_order}', [OrderController::class, 'bayarSimulasi']);
     Route::post('/orders/selesai/{id_order}', [OrderController::class, 'terimaPesanan']);
@@ -63,6 +64,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/delete/{id}', [ProdukController::class, 'destroy']);
     Route::get('/produk/edit/{id}', [ProdukController::class, 'edit']);
     Route::post('/produk/update/{id}', [ProdukController::class, 'update']);
+
+    // --- LAPORAN PENJUALAN VENDOR ---
+    Route::get('/vendor/laporan', [\App\Http\Controllers\OrderController::class, 'laporanVendor'])->name('vendor.laporan');
+    Route::get('/vendor/laporan/export', [\App\Http\Controllers\OrderController::class, 'exportLaporanVendor'])->name('vendor.laporan.export');
+
+
 });
 
 

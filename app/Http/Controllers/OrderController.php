@@ -219,4 +219,111 @@ public function beriRating(Request $request, $id_detail_order, $id_produk)
         return back()->with('success', '📦 Pesanan telah diterima! Transaksi selesai dan komisi telah diteruskan ke vendor.');
     } // Akhir fungsi terimaPesanan
 
+    // ==========================================
+    // 📊 HALAMAN DASHBOARD LAPORAN VENDOR
+    // ==========================================
+    public function laporanVendor()
+    {
+        // 1. Cari ID Vendor dari user yang sedang login
+        // Hubungkan sesuai struktur database kamu (opsi: DB::table('vendors')->where('id_user', Auth::id())->value('id_vendor'))
+        $id_vendor = DB::table('vendors')->where('id_user', Auth::id())->value('id_vendor') ?? Auth::id();
+
+        // 2. Ambil semua data barang yang terjual dari vendor ini
+        $penjualan = DB::table('item_order')
+            ->join('detail_order', 'item_order.id_detail_order', '=', 'detail_order.id_detail_order')
+            ->join('orders', 'detail_order.id_order', '=', 'orders.id_order')
+            ->join('produk', 'item_order.id_produk', '=', 'produk.id_produk')
+            ->join('users', 'orders.id_user', '=', 'users.id')
+            ->where('detail_order.id_vendor', $id_vendor)
+            ->select(
+                'orders.id_order',
+                'users.name as nama_pembeli',
+                'produk.nama_produk',
+                'item_order.jumlah_beli',
+                'item_order.harga_saat_beli',
+                'detail_order.status_order',
+                'orders.tanggal_order'
+            )
+            ->orderBy('orders.tanggal_order', 'desc')
+            ->get();
+
+        // 3. Hitung ringkasan statistik untuk tampilan di halaman
+        $totalPendapatan = 0;
+        $totalTerjual = 0;
+        foreach ($penjualan as $row) {
+            if ($row->status_order == 'selesai' || $row->status_order == 'diproses') {
+                $totalPendapatan += ($row->jumlah_beli * $row->harga_saat_beli);
+            }
+            $totalTerjual += $row->jumlah_beli;
+        }
+
+        return view('vendor_laporan', compact('penjualan', 'totalPendapatan', 'totalTerjual'));
+    }
+
+    // ==========================================
+    // 📥 FITUR EKSPOR DATA KE EXCEL / CSV
+    // ==========================================
+    public function exportLaporanVendor()
+    {
+        $id_vendor = DB::table('vendors')->where('id_user', Auth::id())->value('id_vendor') ?? Auth::id();
+        
+        $penjualan = DB::table('item_order')
+            ->join('detail_order', 'item_order.id_detail_order', '=', 'detail_order.id_detail_order')
+            ->join('orders', 'detail_order.id_order', '=', 'orders.id_order')
+            ->join('produk', 'item_order.id_produk', '=', 'produk.id_produk')
+            ->join('users', 'orders.id_user', '=', 'users.id')
+            ->where('detail_order.id_vendor', $id_vendor)
+            ->select(
+                'orders.id_order',
+                'orders.tanggal_order',
+                'users.name as nama_pembeli',
+                'produk.nama_produk',
+                'item_order.jumlah_beli',
+                'item_order.harga_saat_beli',
+                'detail_order.status_order'
+            )
+            ->orderBy('orders.tanggal_order', 'desc')
+            ->get();
+
+        $fileName = 'Laporan_Penjualan_Vendor_' . date('Y-m-d') . '.csv';
+
+        // Header kolom file Excel/CSV
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$fileName",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $columns = ['ID Order', 'Tanggal', 'Nama Pembeli', 'Nama Produk', 'Jumlah Beli', 'Harga Satuan', 'Total Harga', 'Status'];
+
+        $callback = function() use($penjualan, $columns) {
+            $file = fopen('php://output', 'w');
+            
+            // Masukkan header kolom
+            fputcsv($file, $columns, ';');
+
+            // Masukkan baris data belanjaan
+            foreach ($penjualan as $row) {
+                $total = $row->jumlah_beli * $row->harga_saat_beli;
+                
+                fputcsv($file, [
+                    'INV-000' . $row->id_order,
+                    $row->tanggal_order,
+                    $row->nama_pembeli,
+                    $row->nama_produk,
+                    $row->jumlah_beli,
+                    $row->harga_saat_beli,
+                    $total,
+                    strtoupper($row->status_order)
+                ], ';');
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
 } // AKHIR DARI KELAS OrderController

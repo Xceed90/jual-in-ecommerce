@@ -167,19 +167,21 @@
             @foreach($produk as $item)
             <div class="bg-white rounded-2xl shadow-sm hover:shadow-md border border-gray-100 overflow-hidden flex flex-col group transition duration-300">
                 
-                <div class="relative bg-gray-100 pt-[100%] overflow-hidden">
+               <div class="relative bg-gray-100 pt-[100%] overflow-hidden">
+                
+                <a href="{{ route('produk.detail', $item->id_produk) }}"> 
+                    
                     @if($item->foto_produk)
                         <img src="{{ asset('storage/produk/' . $item->foto_produk) }}" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-500" alt="Foto Produk">
                     @else
                         <div class="absolute inset-0 flex items-center justify-center bg-gray-200 text-gray-400 text-xs">Tidak Ada Foto</div>
-                    @endif
-
-                    @if(isset($item->diskon) && $item->diskon > 0)
-                        <span class="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-sm animate-pulse">
-                            KONTAN -{{ $item->diskon }}%
-                        </span>
-                    @endif
-                </div>
+                    @endif </a>
+                @if(isset($item->diskon) && $item->diskon > 0)
+                    <span class="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-sm animate-pulse">
+                        KONTAN -{{ $item->diskon }}%
+                    </span>
+                @endif
+            </div>
 
                 <div class="p-4 flex flex-col flex-grow">
                     <span class="text-[10px] font-bold text-blue-600 tracking-wide uppercase flex items-center gap-1 mb-1">
@@ -187,8 +189,12 @@
                     </span>
 
                     <h3 class="text-sm font-bold text-gray-800 line-clamp-2 group-hover:text-blue-600 transition min-h-[40px]">
-                        {{ $item->nama_produk }}
+                        <a href="{{ route('produk.detail', $item->id_produk) }}" class="hover:underline">
+                            {{ $item->nama_produk }}
+                        </a>
                     </h3>
+
+                    
 
                     {{-- 🛠️ PERBAIKAN 3: Hitung dan Tampilkan Nilai Rating & Jumlah Pengulas Produk --}}
                     @php

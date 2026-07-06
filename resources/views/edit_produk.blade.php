@@ -84,9 +84,9 @@
                 </div>
 
                 <div class="col-span-1 md:col-span-2 pt-4 flex items-center justify-end gap-3 border-t border-slate-100 mt-2">
-                    <a href="{{ url('/admin') }}" class="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">
-                        Batal
-                    </a>
+                   <a href="{{ url('/seller/dashboard') }}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
+    Batal
+</a>
                     <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-6 rounded-xl transition-all shadow-sm focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>

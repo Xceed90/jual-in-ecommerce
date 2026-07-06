@@ -53,6 +53,34 @@ class ProdukController extends Controller
     
     }
 
+    public function show($id)
+    {
+        // 1. Ambil data produk berdasarkan ID
+        $produk = DB::table('produk')
+            ->join('vendors', 'produk.id_vendor', '=', 'vendors.id_vendor') // Opsional: gabung ke vendor untuk nama toko
+            ->where('id_produk', $id)
+            ->first();
+
+        if (!$produk) {
+            abort(404, 'Produk tidak ditemukan');
+        }
+
+        // 2. Ambil daftar ulasan dari tabel item_order
+        // Kita join sampai ke tabel users agar tahu siapa yang memberi ulasan
+        $ulasanList = DB::table('item_order')
+            ->join('detail_order', 'item_order.id_detail_order', '=', 'detail_order.id_detail_order')
+            ->join('orders', 'detail_order.id_order', '=', 'orders.id_order')
+            ->join('users', 'orders.id_user', '=', 'users.id')
+            ->where('item_order.id_produk', $id)
+            ->whereNotNull('item_order.ulasan') // Hanya ambil yang ada ulasannya
+            ->select('users.name', 'item_order.rating_diberikan', 'item_order.ulasan', 'item_order.updated_at')
+            ->orderBy('item_order.updated_at', 'desc')
+            ->get();
+
+        // 3. Kirim data ke tampilan halaman detail
+        return view('produk_detail', compact('produk', 'ulasanList'));
+    }
+
     // Fungsi Khusus Super Admin: Setujui Vendor & Kirim Email
     public function approveVendor($id)
     {
