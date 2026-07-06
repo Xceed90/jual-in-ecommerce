@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jual-In E-Commerce</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
 <script>
     tailwind.config = {
         theme: {
@@ -17,9 +16,7 @@
                     }
                 },
                 animation: {
-                    // Animasi untuk judul (durasi 0.8 detik)
                     'fade-in-up': 'fade-in-up 1s ease-out forwards',
-                    // Animasi untuk deskripsi dengan delay 0.3 detik agar muncul bergantian
                     'fade-in-up-delay': 'fade-in-up 0.8s ease-out 1s forwards',
                 }
             }
@@ -49,9 +46,18 @@
                             </p>
                         </div>
 
-                        @if(auth()->user()->role == 'vendor' || auth()->user()->role == 'admin')
-                            <a href="{{ url('/admin') }}" class="text-sm font-semibold text-gray-600 hover:text-blue-600 transition">Dashboard Seller</a>
-                        @endif
+                        {{-- 🛠️ PERBAIKAN 1: Tombol Dashboard Seller HANYA muncul untuk role Vendor --}}
+                        @if(Auth::check())
+                            @if(Auth::user()->role == 'admin')
+                                <a href="{{ url('/admin/vendors') }}" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-bold transition">
+                                    👑 Panel Super Admin
+                                </a>
+                            @elseif(Auth::user()->role == 'vendor')
+                                <a href="{{ url('/seller/dashboard') }}" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-bold transition">
+                                    🏪 Dashboard Seller
+                                </a>
+                            @endif
+                        @endif                        
                         
                         <form action="{{ route('logout') }}" method="POST" class="inline m-0 p-0">
                             @csrf
@@ -67,14 +73,17 @@
                         </a>
                     @endguest
 
-                    <a href="{{ url('/keranjang') }}" class="relative group p-2 bg-gray-100 hover:bg-blue-50 rounded-full transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700 group-hover:text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 0a2 2 0 100 4 2 2 0 000-4z" />
-                        </svg>
-                        <span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
-                            {{ session('cart') ? array_sum(array_column(session('cart'), 'qty')) : 0 }}
-                        </span>
-                    </a>
+                    {{-- 🛠️ PERBAIKAN 2: Tombol Keranjang di Navbar HAPUS/SEMBUNYIKAN untuk Admin & Vendor --}}
+                    @if(!Auth::check() || Auth::user()->role == 'user')
+                        <a href="{{ url('/keranjang') }}" class="relative group p-2 bg-gray-100 hover:bg-blue-50 rounded-full transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700 group-hover:text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 0a2 2 0 100 4 2 2 0 000-4z" />
+                            </svg>
+                            <span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
+                                {{ session('cart') ? array_sum(array_column(session('cart'), 'qty')) : 0 }}
+                            </span>
+                        </a>
+                    @endif
                 </div>
             </div>
         </div>
@@ -93,8 +102,8 @@
         </p>
 
     </div>
-    
 </div>
+
 <form action="{{ url('/') }}" method="GET" style="background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; margin-bottom: 30px;">
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: flex-end;">
         
@@ -181,6 +190,29 @@
                         {{ $item->nama_produk }}
                     </h3>
 
+                    {{-- 🛠️ PERBAIKAN 3: Hitung dan Tampilkan Nilai Rating & Jumlah Pengulas Produk --}}
+                    @php
+                        $totalReviewer = \Illuminate\Support\Facades\DB::table('item_order')
+                                            ->where('id_produk', $item->id_produk)
+                                            ->whereNotNull('rating_diberikan')
+                                            ->count();
+                        $nilaiRating = $item->rating ?? 0;
+                    @endphp
+
+                    <div class="flex items-center gap-1 my-1.5">
+                        <div class="flex items-center text-amber-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                        </div>
+                        <span class="text-xs font-bold text-gray-700">
+                            {{ number_format($nilaiRating, 1) }}
+                        </span>
+                        <span class="text-[10px] text-gray-400 font-medium">
+                            ({{ $totalReviewer }} ulasan)
+                        </span>
+                    </div>
+
                     <div class="mt-2 mb-4">
                         @if(isset($item->diskon) && $item->diskon > 0)
                             <span class="text-xs line-through text-gray-400 block">Rp {{ number_format($item->harga, 0, ',', '.') }}</span>
@@ -195,16 +227,23 @@
                         <span class="block text-[10px] text-gray-400 mt-1 font-medium">Sisa Stok: <span class="font-bold text-gray-600">{{ $item->stok }}</span></span>
                     </div>
 
-                    <form action="{{ url('/keranjang/add') }}" method="POST" class="mt-auto">
-                        @csrf
-                        <input type="hidden" name="id_produk" value="{{ $item->id_produk }}">
-                        <button type="submit" class="w-full bg-gray-950 hover:bg-blue-600 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition shadow-sm flex items-center justify-center gap-1.5 group-hover:border-transparent">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                            </svg>
-                            Keranjang
-                        </button>
-                    </form>
+                    {{-- 🛠️ PERBAIKAN 4: Tombol Keranjang di Katalog HAPUS/SEMBUNYIKAN untuk Admin & Vendor --}}
+                    @if(!Auth::check() || Auth::user()->role == 'user')
+                        <form action="{{ url('/keranjang/add') }}" method="POST" class="mt-auto">
+                            @csrf
+                            <input type="hidden" name="id_produk" value="{{ $item->id_produk }}">
+                            <button type="submit" class="w-full bg-gray-950 hover:bg-blue-600 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition shadow-sm flex items-center justify-center gap-1.5 group-hover:border-transparent">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                </svg>
+                                Keranjang
+                            </button>
+                        </form>
+                    @else
+                        <div class="mt-auto text-center py-2 px-3 bg-gray-100 text-gray-400 text-[10px] font-medium rounded-xl italic border border-dashed border-gray-200">
+                            🔒 Akun Manajemen (Tidak Belanja)
+                        </div>
+                    @endif
                 </div>
             </div>
             @endforeach

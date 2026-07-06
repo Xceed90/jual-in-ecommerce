@@ -10,6 +10,8 @@ use App\Models\User;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\VendorApprovedMail;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+
 class ProdukController extends Controller
 {
     // Halaman Depan dengan Fitur Search & Filter Kategori (Level 1)
@@ -65,37 +67,77 @@ class ProdukController extends Controller
     }
 
     // Tampilan Dashboard Admin CRUD (Level 2)
-   public function adminIndex()
+public function adminIndex()
     {
-        $user = auth()->user();
+        // 1. Ambil ID User yang sedang login (Andi = ID 5)
+        $id_user_login = Auth::id(); 
         
-        if ($user->role == 'admin') {
-            // Jika Super Admin: Bisa melihat SEMUA produk
-            $produk = Produk::with(['vendor', 'kategori'])->get();
-        } else {
-            // Jika Vendor: HANYA bisa melihat produk miliknya sendiri
-            // 1. Cari data vendor milik user yang sedang login
-            $vendorLogin = \DB::table('vendors')->where('id_user', $user->id)->first();
-            
-            if ($vendorLogin) {
-                // 2. Filter produk berdasarkan id_vendor
-                $produk = Produk::with(['vendor', 'kategori'])
-                                ->where('id_vendor', $vendorLogin->id_vendor)
-                                ->get();
-            } else {
-                // Jika profil vendor belum terbuat, tampilkan data kosong dulu
-                $produk = collect(); 
-            }
+        // 2. Cari id_vendor asli milik Andi di tabel vendors
+        $data_vendor = DB::table('vendors')->where('id_user', $id_user_login)->first();
+        
+        // Antisipasi jika akun belum terdaftar di tabel vendors agar tidak error screen hitam
+        if (!$data_vendor) {
+            return "Akun Anda (" . Auth::user()->name . ") belum terdaftar di tabel 'vendors'. Pastikan data relasinya sudah ada di database.";
         }
-        
-        $vendors = Vendor::all();
-        $kategori = Kategori::all();
 
-        return view('admin', compact('produk', 'vendors', 'kategori'));
+        // Ini id_vendor asli (misal nilainya 4)
+        $id_vendor = $data_vendor->id_vendor; 
+
+        // 3. Mengambil semua daftar produk milik vendor ini
+        $produk = DB::table('produk')->where('id_vendor', $id_vendor)->get();
+
+        // 4. Hitung TOTAL PENJUALAN
+        $total_penjualan = DB::table('detail_order')
+            ->join('item_order', 'detail_order.id_detail_order', '=', 'item_order.id_detail_order')
+            ->where('detail_order.id_vendor', $id_vendor)
+            ->where('detail_order.status_order', 'selesai')
+            ->sum(DB::raw('item_order.harga_saat_beli * item_order.jumlah_beli'));
+
+        // 5. Hitung ORDER MASUK (Order Aktif)
+        $order_masuk = DB::table('detail_order')
+            ->where('id_vendor', $id_vendor)
+            ->whereIn('status_order', [
+                'menunggu pembayaran', 'menunggu_pembayaran', 
+                'pending', 'diproses', 'di_proses'
+            ])
+            ->count();
+
+        // 6. Cari PRODUK TERLARIS
+        $produk_terlaris = DB::table('item_order')
+            ->join('produk', 'item_order.id_produk', '=', 'produk.id_produk')
+            ->select('produk.nama_produk', 'produk.foto_produk', DB::raw('SUM(item_order.jumlah_beli) as total_terjual'))
+            ->where('produk.id_vendor', $id_vendor)
+            ->groupBy('produk.id_produk', 'produk.nama_produk', 'produk.foto_produk')
+            ->orderBy('total_terjual', 'desc')
+            ->limit(5)
+            ->get();
+
+        // 7. Ambil data untuk Form Tambah Produk
+        $kategori = DB::table('kategori')->get();
+        $vendors = DB::table('vendors')->get();
+
+        // 8. Ambil Data Detail Pesanan Untuk Tabel
+     $daftar_pesanan = DB::table('detail_order')
+            ->join('orders', 'detail_order.id_order', '=', 'orders.id_order')
+            ->join('users', 'orders.id_user', '=', 'users.id') 
+            ->select('detail_order.*', 'orders.tanggal_order', 'orders.alamat_pengiriman', 'users.name as nama_pembeli')
+            ->where('detail_order.id_vendor', $id_vendor)
+            ->orderBy('orders.tanggal_order', 'desc')
+            ->get();
+
+    // 9. Ambil Semua Ulasan Produk Milik Vendor Ini (BARIS INI YANG SEBELUMNYA HILANG)
+        $daftar_ulasan = DB::table('ulasan')
+            ->join('produk', 'ulasan.id_produk', '=', 'produk.id_produk')
+            ->join('users', 'ulasan.id_user', '=', 'users.id') 
+            ->select('ulasan.*', 'produk.nama_produk', 'produk.foto_produk', 'users.name as nama_pembeli')
+            ->where('produk.id_vendor', $id_vendor)
+            ->orderBy('ulasan.created_at', 'desc')
+            ->get();
+
+        // PAKAI RETURN VIEW YANG INI SAJA (Di paling bawah fungsi adminIndex)
+        return view('admin', compact('produk', 'total_penjualan', 'order_masuk', 'produk_terlaris', 'kategori', 'vendors', 'daftar_pesanan', 'daftar_ulasan'));
     }
-
-    // Proses Tambah Produk Baru (Level 2)
- public function store(Request $request)
+     public function store(Request $request)
     {
         $request->validate([
             'nama_produk' => 'required|string',
@@ -146,7 +188,7 @@ class ProdukController extends Controller
             'deskripsi' => $request->deskripsi,
         ]);
 
-        return redirect('/admin')->with('success', 'Produk baru berhasil ditambahkan!');
+        return redirect('/seller/dashboard')->with('success', 'Produk berhasil ditambahkan!');
     }
 
 // Menampilkan Halaman Form Edit Produk
@@ -185,7 +227,7 @@ class ProdukController extends Controller
             // (Foto tidak wajib diupdate dulu agar simpel)
         ]);
 
-        return redirect('/admin')->with('success', 'Produk berhasil diubah!');
+        return redirect('/seller/dashboard')->with('success', 'Produk berhasil diperbarui!');
     }
 
     // Proses Hapus Produk (Level 2)
@@ -206,6 +248,6 @@ class ProdukController extends Controller
 
         $produk->delete();
 
-        return redirect('/admin')->with('success', 'Produk berhasil dihapus!');
+        return redirect('/seller/dashboard')->with('success', 'Produk berhasil dihapus!');
     }
 }

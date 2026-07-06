@@ -1,12 +1,14 @@
 <?php
 
+use App\Http\Controllers\AdminController; 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProdukController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\KeranjangController;
-
-
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 // --- LOGIN LOGOUT ---
 Route::get('/login', [AuthController::class, 'index'])->name('login');
@@ -26,33 +28,45 @@ Route::get('/keranjang', [KeranjangController::class, 'index']);
 Route::get('/keranjang/hapus/{id}', [KeranjangController::class, 'remove']);
 Route::get('/keranjang/update-qty/{id}', [KeranjangController::class, 'updateQty']);
 
-// Rute untuk memproses checkout (Memicu fungsi yang tadi kita buat)
-Route::post('/checkout', [App\Http\Controllers\OrderController::class, 'checkout']);
-// Rute untuk memproses penilaian produk
-Route::post('/orders/rating/{id_produk}', [OrderController::class, 'beriRating'])->middleware('auth');
 
-// Rute untuk melihat riwayat pesanan setelah checkout sukses
-Route::get('/orders', [App\Http\Controllers\OrderController::class, 'index']);
-
-// --- FITUR YANG BUTUH LOGIN ---
+// --- FITUR YANG BUTUH LOGIN (AMAN TERKUNCI) ---
 Route::middleware('auth')->group(function () {
-    // Fitur Super Admin: Approve Vendor
-    Route::get('/admin/approve/{id}', [ProdukController::class, 'approveVendor']);
-    Route::get('/orders/export-csv', [OrderController::class, 'exportCSV'])->middleware('auth');
     
-    // Khusus Pembeli (User)
+
+    // ==========================================
+    // 1. RUTE KHUSUS SUPER ADMIN
+    // ==========================================
+    Route::get('/admin/approve/{id}', [ProdukController::class, 'approveVendor']);
+    Route::get('/admin/vendors', [AdminController::class, 'daftarVendor']);
+    Route::get('/admin/transaksi', [AdminController::class, 'semuaTransaksi']);
+    Route::get('/admin/komisi', [AdminController::class, 'kelolaKomisi']);
+    Route::get('/orders/export-csv', [OrderController::class, 'exportCSV']);
+
+    
+    // ==========================================
+    // 2. RUTE PEMBELI (USER)
+    // ==========================================
     Route::post('/checkout', [OrderController::class, 'checkout']);
     Route::get('/orders', [OrderController::class, 'index']);
+    // 👇 UBAH BARIS INI (Tambahkan name di ujungnya) 👇
+    Route::post('/orders/rating/{id_detail_order}/{id_produk}', [OrderController::class, 'beriRating'])->name('beri.rating');
+    Route::post('/orders/bayar/{id_order}', [OrderController::class, 'bayarSimulasi']);
+    Route::post('/orders/selesai/{id_order}', [OrderController::class, 'terimaPesanan']);
 
-    // Khusus Admin / Vendor (Bisa akses CRUD)
-    Route::get('/admin', [ProdukController::class, 'adminIndex']);
+    
+    // ==========================================
+    // 3. RUTE DASHBOARD VENDOR (SELLER)
+    // ==========================================
+    // 💡 INI YANG TADI BIKIN 404, SUDAH SAYA PERBAIKI:
+    Route::get('/seller/dashboard', [ProdukController::class, 'adminIndex']); 
     Route::post('/admin/store', [ProdukController::class, 'store']);
     Route::get('/admin/delete/{id}', [ProdukController::class, 'destroy']);
-    Route::get('/produk/edit/{id}', [App\Http\Controllers\ProdukController::class, 'edit']);
-    Route::post('/produk/update/{id}', [App\Http\Controllers\ProdukController::class, 'update']);
-    
+    Route::get('/produk/edit/{id}', [ProdukController::class, 'edit']);
+    Route::post('/produk/update/{id}', [ProdukController::class, 'update']);
 });
 
+
+// --- FITUR LOGOUT & RESET PASSWORD ---
 Route::post('/logout', function () {
     Auth::logout();
     request()->session()->invalidate();
@@ -67,15 +81,11 @@ Route::get('/lupa-password', function() {
 
 Route::post('/lupa-password', function(Illuminate\Http\Request $request) {
     $request->validate(['email' => 'required|email']);
-    
-    // Cek apakah email ada di database
     $user = DB::table('users')->where('email', $request->email)->first();
     
     if (!$user) {
         return back()->withErrors(['email' => 'Alamat e-mail tidak terdaftar di sistem kami.']);
     }
-
-    // Alihkan ke halaman sukses simulasi dengan membawa email
     return view('auth.lupa-password-sukses', ['email' => $request->email]);
 });
 
@@ -90,7 +100,6 @@ Route::post('/reset-password', function(Illuminate\Http\Request $request) {
         'password' => 'required|min:6|confirmed'
     ]);
 
-    // Update password baru ke database (di-hash)
     DB::table('users')
         ->where('email', $request->email)
         ->update(['password' => Hash::make($request->password)]);

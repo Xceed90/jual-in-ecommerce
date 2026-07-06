@@ -12,82 +12,81 @@ class OrderController extends Controller
 {
     public function index()
     {
-        $orders = Order::with(['user', 'details.vendor', 'details.items.produk'])->orderBy('id_order', 'desc')->get();
+        // 🔒 PERBAIKAN: Tambahkan where() untuk memfilter berdasarkan user yang sedang login
+        $orders = Order::with(['user', 'details.vendor', 'details.items.produk'])
+                    ->where('id_user', Auth::id()) 
+                    ->orderBy('id_order', 'desc')
+                    ->get();
+                    
         return view('orders', compact('orders'));
     }
 
     public function checkout(Request $request)
     {
-        $userId = Auth::id();
-        $cart = session()->get('cart');
+        // 1. Ambil data cart dari session atau database
+        $cartItems = session('cart') ?? []; 
 
-        if (empty($cart)) {
-            return back()->with('error_checkout', 'Keranjang Anda masih kosong!');
+        if (empty($cartItems)) {
+            return redirect('/keranjang')->with('error', 'Keranjang belanja Anda masih kosong!');
         }
 
-        DB::beginTransaction();
+        // 💡 HITUNG TOTAL HARGA SECARA REAL-TIME DARI CART SEBELUM INSERT DATA
+        $totalHargaProduk = 0;
+        foreach ($cartItems as $id_produk => $item) {
+            $totalHargaProduk += ($item['qty'] * $item['harga']);
+        }
 
+        // 2. MULAI TRY BLOCK DI SINI
         try {
-            $grandTotal = 0;
-            foreach ($cart as $id_produk => $item) {
-                $grandTotal += ($item['harga'] * $item['qty']);
-            }
+            DB::beginTransaction();
 
-            $orderId = DB::table('orders')->insertGetId([
-                'id_user'            => $userId, 
-                'tanggal_order'      => now(),
-                'total_harga_produk' => $grandTotal, 
-                'total_ongkir'       => 0, 
-                'grand_total'        => $grandTotal, 
-                'alamat_pengiriman'  => 'Alamat Default Pembeli', 
-                'created_at'         => now(),
-            ], 'id_order'); 
+            // Buat Order Baru dengan nilai kalkulasi dinamis
+            $idOrderBaru = DB::table('orders')->insertGetId([
+                'id_user' => auth()->user()->id,
+                'tanggal_order' => now(),
+                'alamat_pengiriman' => 'Alamat Default Pembeli', 
+                'total_harga_produk' => $totalHargaProduk, 
+                'total_ongkir' => 0, 
+                'grand_total' => $totalHargaProduk, 
+                'created_at' => now(),
+            ], 'id_order');
 
-            $pesananPerVendor = [];
-            
-            foreach ($cart as $id_produk => $item) {
-                $produk = DB::table('produk')->where('id_produk', $id_produk)->lockForUpdate()->first();
+        // 3. Looping Cart Items
+            foreach ($cartItems as $id_produk => $item) {
+                
+                $produkAsli = DB::table('produk')->where('id_produk', $id_produk)->first();
 
-                if (!$produk) {
-                    throw new Exception("Produk " . $item['nama_produk'] . " tidak ditemukan.");
-                }
+                if ($produkAsli) {
+                    // Masukkan ke detail order
+                    $idDetailOrderBaru = DB::table('detail_order')->insertGetId([
+                        'id_order' => $idOrderBaru,
+                        'id_vendor' => $produkAsli->id_vendor, 
+                        
+                        // 💡 UBAH BAGIAN INI MENJADI KATA YANG DIIZINKAN DATABASE:
+                        'status_order' => 'menunggu_pembayaran', 
+                        
+                        'kurir_pengiriman' => 'Belum Memilih',
+                        'ongkir_per_vendor' => 0,
+                        'created_at' => now(),
+                    ], 'id_detail_order');
 
-                if ($produk->stok < $item['qty']) {
-                    throw new Exception("Maaf, stok {$produk->nama_produk} tidak mencukupi! Sisa stok: {$produk->stok}");
-                }
-
-                DB::table('produk')->where('id_produk', $id_produk)->update([
-                    'stok' => $produk->stok - $item['qty']
-                ]);
-
-                $pesananPerVendor[$produk->id_vendor][] = [
-                    'id_produk' => $id_produk,
-                    'qty' => $item['qty'],
-                    'harga' => $item['harga'],
-                ];
-            }
-
-            foreach ($pesananPerVendor as $idVendor => $items) {
-                $detailOrderId = DB::table('detail_order')->insertGetId([
-                    'id_order'          => $orderId,
-                    'id_vendor'         => $idVendor,
-                    'kurir_pengiriman'  => 'Belum Memilih', 
-                    'ongkir_per_vendor' => 0,              
-                    'status_order'      => 'menunggu_pembayaran', 
-                    'created_at'        => now(),
-                ], 'id_detail_order');
-
-                foreach ($items as $item) {
+                    // Masukkan data barang ke tabel item_order
                     DB::table('item_order')->insert([
-                        'id_detail_order' => $detailOrderId,
-                        'id_produk'       => $item['id_produk'],
-                        'jumlah_beli'     => $item['qty'],
+                        'id_detail_order' => $idDetailOrderBaru,
+                        'id_produk' => $id_produk,
+                        'jumlah_beli' => $item['qty'],
                         'harga_saat_beli' => $item['harga'],
-                        'created_at'      => now(),
+                        'created_at' => now(),
                     ]);
+
+                    // Perintah memotong stok produk
+                    DB::table('produk')
+                        ->where('id_produk', $id_produk)
+                        ->decrement('stok', $item['qty']); 
                 }
             }
 
+            // 4. Bersihkan keranjang dan Commit Database
             session()->forget('cart');
             DB::commit();
 
@@ -97,7 +96,7 @@ class OrderController extends Controller
             DB::rollback();
             return back()->with('error_checkout', 'Sistem membatalkan pesanan: ' . $e->getMessage());
         }
-    }
+    } // Akhir fungsi checkout
 
     // ==========================================
     // FITUR : EKSPOR LAPORAN KE CSV / EXCEL
@@ -106,7 +105,6 @@ class OrderController extends Controller
     {
         $fileName = 'Laporan_Penjualan_' . date('Y-m-d_H-i-s') . '.csv';
         
-        // Mengambil data komplit hasil join relasi dari database
         $dataPenjualan = DB::table('orders')
             ->join('users', 'orders.id_user', '=', 'users.id')
             ->join('detail_order', 'orders.id_order', '=', 'detail_order.id_order')
@@ -140,13 +138,10 @@ class OrderController extends Controller
         $callback = function() use($dataPenjualan, $columns) {
             $file = fopen('php://output', 'w');
             
-            // Tambahkan BOM (Byte Order Mark) agar Microsoft Excel tidak berantakan saat membaca huruf/angka
             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
             
-            // Tulis Header Kolom
             fputcsv($file, $columns, ';');
 
-            // Tulis Isi Data
             foreach ($dataPenjualan as $row) {
                 fputcsv($file, [
                     $row->id_order,
@@ -165,41 +160,63 @@ class OrderController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
-    }
+    } // Akhir fungsi exportCSV
 
-// ==========================================
-    // FITUR BARU: BERI RATING PRODUK
     // ==========================================
-    public function beriRating(Request $request, $id_produk)
+    // FITUR : BERI RATING PRODUK (AKURAT & REAL-TIME)
+    // ==========================================
+public function beriRating(Request $request, $id_detail_order, $id_produk)
     {
-        // Pastikan input rating valid (1 sampai 5)
         $request->validate([
-            'rating' => 'required|numeric|min:1|max:5'
+            'rating' => 'required|numeric|min:1|max:5',
+            'ulasan' => 'nullable|string' // 💡 TAMBAHAN: Validasi teks ulasan
         ]);
 
         $ratingInput = $request->rating;
 
-        // Ambil data produk saat ini
-        $produk = DB::table('produk')->where('id_produk', $id_produk)->first();
-
-        if ($produk) {
-            // Logika perhitungan rating sederhana:
-            // Jika rating masih 0, langsung pakai input. Jika sudah ada, ambil nilai tengah/rata-ratanya.
-            if ($produk->rating == 0 || $produk->rating == null) {
-                $ratingBaru = $ratingInput;
-            } else {
-                $ratingBaru = ($produk->rating + $ratingInput) / 2;
-            }
-
-            // Update ke database (dibulatkan 1 angka di belakang koma, misal 4.5)
-            DB::table('produk')->where('id_produk', $id_produk)->update([
-                'rating' => round($ratingBaru, 1)
+        // Update rating DAN teks ulasan ke database
+        DB::table('item_order')
+            ->where('id_detail_order', $id_detail_order)
+            ->where('id_produk', $id_produk)
+            ->update([
+                'rating_diberikan' => $ratingInput,
+                'ulasan' => $request->ulasan // 💡 TAMBAHAN: Simpan teks ulasannya di sini
             ]);
 
-            return back()->with('success', 'Terima kasih! Rating ' . $ratingInput . ' bintang berhasil diberikan untuk produk ' . $produk->nama_produk);
-        }
+        $rataRataRating = DB::table('item_order')
+            ->where('id_produk', $id_produk)
+            ->whereNotNull('rating_diberikan')
+            ->avg('rating_diberikan'); 
 
-        return back()->with('error_checkout', 'Produk tidak ditemukan!');
-    }
+        DB::table('produk')->where('id_produk', $id_produk)->update([
+            'rating' => round($rataRataRating, 1) 
+        ]);
 
-    }
+        return back()->with('success', 'Terima kasih! Ulasan dan rating berhasil disimpan.');
+    } // Akhir fungsi beriRating
+
+    // ==========================================
+    // SIMULASI BAYAR (Ubah ke Diproses)
+    // ==========================================
+    public function bayarSimulasi($id_order)
+    {
+        DB::table('detail_order')
+            ->where('id_order', $id_order)
+            ->update(['status_order' => 'diproses']);
+
+        return back()->with('success', '✅ Pembayaran berhasil disimulasikan! Pesanan sekarang sedang diproses oleh Vendor.');
+    } // Akhir fungsi bayarSimulasi
+
+    // ==========================================
+    // PESANAN DITERIMA (Ubah ke Selesai)
+    // ==========================================
+    public function terimaPesanan($id_order)
+    {
+        DB::table('detail_order')
+            ->where('id_order', $id_order)
+            ->update(['status_order' => 'selesai']);
+
+        return back()->with('success', '📦 Pesanan telah diterima! Transaksi selesai dan komisi telah diteruskan ke vendor.');
+    } // Akhir fungsi terimaPesanan
+
+} // AKHIR DARI KELAS OrderController

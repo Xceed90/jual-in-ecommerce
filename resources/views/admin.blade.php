@@ -120,6 +120,120 @@
 
         @elseif(Auth::user()->role == 'vendor')
             
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex items-center gap-5 hover:shadow-md transition">
+                    <div class="bg-emerald-100 p-4 rounded-2xl text-emerald-600 border border-emerald-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Total Pendapatan</p>
+                        <h3 class="text-2xl font-black text-slate-800 mt-1">Rp {{ number_format($total_penjualan ?? 0, 0, ',', '.') }}</h3>
+                        <p class="text-[11px] text-emerald-500 font-bold mt-1">✅ Saldo Tersedia</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex items-center gap-5 hover:shadow-md transition">
+                    <div class="bg-indigo-100 p-4 rounded-2xl text-indigo-600 border border-indigo-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Order Aktif</p>
+                        <h3 class="text-2xl font-black text-slate-800 mt-1">{{ $order_masuk ?? 0 }} <span class="text-sm font-bold text-slate-400">Pesanan</span></h3>
+                        <p class="text-[11px] text-indigo-500 font-bold mt-1">📦 Perlu Diproses</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 h-full flex flex-col">
+                    <h4 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        🔥 Produk Terlaris Anda
+                    </h4>
+                    <ul class="space-y-3 flex-1">
+                        @if(isset($produk_terlaris) && count($produk_terlaris) > 0)
+                            @foreach($produk_terlaris as $top)
+                            <li class="flex items-center justify-between border-b border-slate-100 pb-2 last:border-0 last:pb-0">
+                                <div class="flex items-center gap-3">
+                                    @if($top->foto_produk)
+                                        <img src="{{ asset('storage/produk/' . $top->foto_produk) }}" class="w-10 h-10 rounded-lg object-cover shadow-sm border border-slate-200">
+                                    @else
+                                        <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-[9px] font-medium text-slate-400 border border-slate-200">No Pic</div>
+                                    @endif
+                                    <span class="text-xs font-semibold text-slate-700 line-clamp-1 max-w-[100px]">{{ $top->nama_produk }}</span>
+                                </div>
+                                <span class="text-[10px] font-black text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-md shadow-sm">
+                                    {{ $top->total_terjual }} Terjual
+                                </span>
+                            </li>
+                            @endforeach
+                        @else
+                            <li class="text-xs text-slate-400 italic text-center py-4 bg-slate-50 rounded-xl border border-slate-100">Belum ada penjualan.</li>
+                        @endif
+                    </ul>
+                </div>
+
+            </div>
+            <div class="mb-6">
+                </ul>
+                </div>
+
+            </div>
+
+            <div class="mb-6 flex items-center justify-between mt-8">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900">📦 Daftar Pesanan Masuk</h2>
+                    <p class="text-sm text-slate-500">Pantau dan proses pesanan dari pelanggan Anda.</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-12">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 font-semibold">
+                                <th class="p-4 px-6">Tanggal & ID</th>
+                                <th class="p-4 px-6">Nama Pembeli</th>
+                                <th class="p-4 px-6">Alamat Pengiriman</th>
+                                <th class="p-4 px-6">Status Pesanan</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm divide-y divide-slate-100">
+                            @forelse($daftar_pesanan as $pesanan)
+                            <tr class="hover:bg-slate-50/70 transition-colors">
+                                <td class="p-4 px-6">
+                                    <span class="block font-bold text-slate-800">#ORD-{{ $pesanan->id_order }}</span>
+                                    <span class="text-xs text-slate-500">{{ \Carbon\Carbon::parse($pesanan->tanggal_order)->format('d M Y, H:i') }}</span>
+                                </td>
+                                <td class="p-4 px-6 font-semibold text-slate-700">
+                                    👤 {{ $pesanan->nama_pembeli }}
+                                </td>
+                                <td class="p-4 px-6 text-slate-600 text-xs max-w-xs truncate">
+                                    {{ $pesanan->alamat_pengiriman }}
+                                </td>
+                                <td class="p-4 px-6">
+                                    @if($pesanan->status_order == 'selesai')
+                                        <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">✅ Selesai</span>
+                                    @elseif($pesanan->status_order == 'diproses')
+                                        <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700">⚙️ Diproses</span>
+                                    @else
+                                        <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700">⏳ {{ ucfirst(str_replace('_', ' ', $pesanan->status_order)) }}</span>
+                                    @endif
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="4" class="p-8 text-center text-slate-400 italic">
+                                    Belum ada pesanan masuk ke toko Anda.
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
             <div class="mb-6">
                 <h2 class="text-lg font-bold text-slate-900">Tambahkan Produk Baru</h2>
                 <p class="text-sm text-slate-500">Isi detail produk untuk ditampilkan di etalase toko Anda.</p>
@@ -154,6 +268,7 @@
                         <select name="id_kategori" required class="w-full border border-slate-300 px-4 py-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow outline-none">
                             <option value="" disabled selected>Pilih kategori yang sesuai</option>
                             @foreach($kategori as $k)
+                                <!-- KEMBALIKAN KODE OPTION INI: -->
                                 <option value="{{ $k->id_kategori }}">{{ $k->nama_kategori }}</option>
                             @endforeach
                         </select>
@@ -161,7 +276,7 @@
 
                     <div class="space-y-1">
                         <label class="block text-sm font-medium text-slate-700">Status Vendor</label>
-                        @if(Auth::user()->role == 'admin')
+                      @if(Auth::user()->role == 'admin')
                             <select name="id_vendor" required class="w-full border border-slate-300 px-4 py-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
                                 <option value="" disabled selected>Pilih Toko Vendor Pemilik</option>
                                 @foreach($vendors as $v)
@@ -176,33 +291,33 @@
                     </div>
 
                     <div class="col-span-1 md:col-span-2 space-y-1">
-    <label class="block text-sm font-medium text-slate-700">Upload Foto Produk</label>
-    <div class="mt-1 flex flex-col items-center justify-center px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-xl hover:border-indigo-400 transition-colors bg-slate-50/50 relative min-h-[180px]">
-        
-        <div id="preview-container" class="hidden absolute inset-0 w-full h-full bg-white rounded-xl overflow-hidden flex items-center justify-center z-10 p-2">
-            <img id="image-preview" src="#" alt="Draf Foto Produk" class="w-full h-full object-contain rounded-lg">
-            <button type="button" onclick="resetUpload()" class="absolute top-3 right-3 bg-slate-900/90 hover:bg-rose-600 text-white py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors shadow-md z-20 flex items-center gap-1">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                Ganti Foto
-            </button>
-        </div>
+                        <label class="block text-sm font-medium text-slate-700">Upload Foto Produk</label>
+                        <div class="mt-1 flex flex-col items-center justify-center px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-xl hover:border-indigo-400 transition-colors bg-slate-50/50 relative min-h-[180px]">
+                            
+                            <div id="preview-container" class="hidden absolute inset-0 w-full h-full bg-white rounded-xl overflow-hidden flex items-center justify-center z-10 p-2">
+                                <img id="image-preview" src="#" alt="Draf Foto Produk" class="w-full h-full object-contain rounded-lg">
+                                <button type="button" onclick="resetUpload()" class="absolute top-3 right-3 bg-slate-900/90 hover:bg-rose-600 text-white py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors shadow-md z-20 flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    Ganti Foto
+                                </button>
+                            </div>
 
-        <div id="upload-instruction" class="space-y-1 text-center transition-opacity duration-200">
-            <svg class="mx-auto h-12 w-12 text-slate-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
-                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            <div class="flex text-sm text-slate-600 justify-center">
-                <label class="relative cursor-pointer bg-transparent rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
-                    <span>Pilih file gambar</span>
-                    <input type="file" id="foto_produk" name="foto_produk" required class="sr-only" onchange="previewImage(this)">
-                </label>
-                <p class="pl-1">atau drag and drop</p>
-            </div>
-            <p class="text-xs text-slate-500">PNG, JPG, GIF hingga 2MB</p>
-        </div>
+                            <div id="upload-instruction" class="space-y-1 text-center transition-opacity duration-200">
+                                <svg class="mx-auto h-12 w-12 text-slate-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <div class="flex text-sm text-slate-600 justify-center">
+                                    <label class="relative cursor-pointer bg-transparent rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
+                                        <span>Pilih file gambar</span>
+                                        <input type="file" id="foto_produk" name="foto_produk" required class="sr-only" onchange="previewImage(this)">
+                                    </label>
+                                    <p class="pl-1">atau drag and drop</p>
+                                </div>
+                                <p class="text-xs text-slate-500">PNG, JPG, GIF hingga 2MB</p>
+                            </div>
 
-    </div>
-</div>
+                        </div>
+                    </div>
 
                     <div class="col-span-1 md:col-span-2 space-y-1">
                         <label class="block text-sm font-medium text-slate-700">Deskripsi Singkat</label>
@@ -346,6 +461,4 @@
             instruction.classList.remove('opacity-0'); // Munculkan kembali teks instruksi bawaan
         }
     </script>
-</body>
-</html>
 </html>
