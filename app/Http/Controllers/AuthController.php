@@ -67,18 +67,19 @@ class AuthController extends Controller
             'status' => $statusOtomatis,
         ]);
 
-        // 2. TAMBAHKAN INI: Jika pendaftar adalah Vendor, otomatis daftarkan juga ke tabel vendors
         if ($request->role == 'vendor') {
             DB::table('vendors')->insert([
-                'id_user' => $user->id, // menghubungkan ke akun user barusan
+                'id_user' => $user->id,
                 'nama_toko' => $request->name,
+                'pemilik' => $request->name, 
             ]);
 
             return redirect('/login')->with('success', 'Pendaftaran Vendor berhasil! Akun Anda sedang ditinjau oleh Super Admin.');
         }
 
+        // --- BARIS DI BAWAH INI KEMUNGKINAN TERHAPUS OLEHMU TADI ---
         return redirect('/login')->with('success', 'Pendaftaran Akun Berhasil! Silakan masuk menggunakan akun baru Anda.');
-    }
+    } // <--- KURUNG KURAWAL PENUTUP FUNGSI REGISTER INI WAJIB ADA
 
     public function logout(Request $request)
     {

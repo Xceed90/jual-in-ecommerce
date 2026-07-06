@@ -29,7 +29,21 @@
                     <p class="font-bold text-lg">{{ $order->user->name }}</p>
                 </div>
             </div>
-
+            <br>
+               <a href="{{ url('/orders/export-csv') }}" 
+   style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white; padding: 10px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4); transition: all 0.3s ease; border: 1px solid #047857; margin-bottom: 20px;"
+   onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 12px -2px rgba(16, 185, 129, 0.6)';" 
+   onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px -1px rgba(16, 185, 129, 0.4)';">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <path d="M12 18v-6"></path>
+        <path d="M9 15l3 3 3-3"></path>
+    </svg>
+    
+    Ekspor Laporan Penjualan
+</a>
             <div class="p-6 bg-gray-50 border-b border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <p class="text-sm font-semibold text-gray-500">📍 Alamat Pengiriman:</p>
@@ -65,14 +79,33 @@
                             <p>Ongkir Toko Ini: <strong>Rp {{ number_format($detail->ongkir_per_vendor, 0, ',', '.') }}</strong></p>
                         </div>
 
-                        <div class="space-y-2">
+                      <div class="space-y-2">
                             @foreach($detail->items as $item)
-                            <div class="flex justify-between items-center text-sm p-2 bg-blue-50 rounded">
-                                <div>
-                                    <p class="font-medium text-gray-800">{{ $item->produk->nama_produk }}</p>
-                                    <p class="text-xs text-gray-500">{{ $item->jumlah_beli }} x Rp {{ number_format($item->harga_saat_beli, 0, ',', '.') }}</p>
+                            <div class="flex flex-col text-sm p-3 bg-blue-50 rounded gap-3">
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <p class="font-medium text-gray-800">{{ $item->produk->nama_produk }}</p>
+                                        <p class="text-xs text-gray-500">{{ $item->jumlah_beli }} x Rp {{ number_format($item->harga_saat_beli, 0, ',', '.') }}</p>
+                                    </div>
+                                    <p class="font-bold text-gray-700">Rp {{ number_format($item->jumlah_beli * $item->harga_saat_beli, 0, ',', '.') }}</p>
                                 </div>
-                                <p class="font-bold text-gray-700">Rp {{ number_format($item->jumlah_beli * $item->harga_saat_beli, 0, ',', '.') }}</p>
+                                
+                                <form action="{{ url('/orders/rating/' . $item->id_produk) }}" method="POST" class="flex items-center gap-2 border-t border-blue-100 pt-2">
+                                    @csrf
+                                    <span class="text-xs font-semibold text-gray-600">Berikan Penilaian:</span>
+                                    <select name="rating" required class="px-2 py-1 rounded border border-gray-300 text-xs outline-none focus:border-blue-500 bg-white cursor-pointer">
+                                        <option value="">Pilih ⭐</option>
+                                        <option value="5">⭐⭐⭐⭐⭐ (5)</option>
+                                        <option value="4">⭐⭐⭐⭐ (4)</option>
+                                        <option value="3">⭐⭐⭐ (3)</option>
+                                        <option value="2">⭐⭐ (2)</option>
+                                        <option value="1">⭐ (1)</option>
+                                    </select>
+                                    
+                                    <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-white border-none px-3 py-1 rounded font-bold text-xs cursor-pointer transition duration-200">
+                                        Kirim Rating
+                                    </button>
+                                </form>
                             </div>
                             @endforeach
                         </div>

@@ -6,6 +6,8 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\KeranjangController;
 
+
+
 // --- LOGIN LOGOUT ---
 Route::get('/login', [AuthController::class, 'index'])->name('login');
 Route::post('/login', [AuthController::class, 'authenticate']);
@@ -24,10 +26,19 @@ Route::get('/keranjang', [KeranjangController::class, 'index']);
 Route::get('/keranjang/hapus/{id}', [KeranjangController::class, 'remove']);
 Route::get('/keranjang/update-qty/{id}', [KeranjangController::class, 'updateQty']);
 
+// Rute untuk memproses checkout (Memicu fungsi yang tadi kita buat)
+Route::post('/checkout', [App\Http\Controllers\OrderController::class, 'checkout']);
+// Rute untuk memproses penilaian produk
+Route::post('/orders/rating/{id_produk}', [OrderController::class, 'beriRating'])->middleware('auth');
+
+// Rute untuk melihat riwayat pesanan setelah checkout sukses
+Route::get('/orders', [App\Http\Controllers\OrderController::class, 'index']);
+
 // --- FITUR YANG BUTUH LOGIN ---
 Route::middleware('auth')->group(function () {
     // Fitur Super Admin: Approve Vendor
     Route::get('/admin/approve/{id}', [ProdukController::class, 'approveVendor']);
+    Route::get('/orders/export-csv', [OrderController::class, 'exportCSV'])->middleware('auth');
     
     // Khusus Pembeli (User)
     Route::post('/checkout', [OrderController::class, 'checkout']);
@@ -37,6 +48,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin', [ProdukController::class, 'adminIndex']);
     Route::post('/admin/store', [ProdukController::class, 'store']);
     Route::get('/admin/delete/{id}', [ProdukController::class, 'destroy']);
+    Route::get('/produk/edit/{id}', [App\Http\Controllers\ProdukController::class, 'edit']);
+    Route::post('/produk/update/{id}', [App\Http\Controllers\ProdukController::class, 'update']);
     
 });
 

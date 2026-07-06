@@ -66,14 +66,19 @@
                     @endforeach
                 </div>
 
-                <div class="border-t border-dashed mt-4 pt-6 text-right">
-                    <p class="text-gray-500 font-semibold mb-1">Total Pembayaran:</p>
-                    <h2 class="text-3xl font-black text-orange-600 mb-6">Rp {{ number_format($totalSemua, 0, ',', '.') }}</h2>
-                    
-                    <button onclick="alert('Ini adalah simulasi! Dalam dunia nyata, ini akan diarahkan ke Payment Gateway (Midtrans/OVO/Transfer Bank) untuk membayar tagihan ke berbagai toko sekaligus.')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition">
-                        🔒 Proses Pembayaran
+                            <form action="{{ url('/checkout') }}" method="POST">
+                    @csrf
+                    @if(session('error_checkout'))
+                        <div class="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+                            {{ session('error_checkout') }}
+                        </div>
+                    @endif
+
+                    <button type="submit" onclick="return confirm('Apakah Anda yakin ingin memproses pesanan ini?');" 
+                            class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition-all transform hover:scale-105">
+                        🛒 Proses Checkout Sekarang
                     </button>
-                </div>
+                </form>
             @else
                 <div class="text-center py-12">
                     <p class="text-4xl mb-4">🛒</p>

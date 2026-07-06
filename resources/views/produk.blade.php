@@ -5,6 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jual-In E-Commerce</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                keyframes: {
+                    'fade-in-up': {
+                        '0%': { opacity: '0', transform: 'translateY(30px)' },
+                        '100%': { opacity: '1', transform: 'translateY(0)' },
+                    }
+                },
+                animation: {
+                    // Animasi untuk judul (durasi 0.8 detik)
+                    'fade-in-up': 'fade-in-up 1s ease-out forwards',
+                    // Animasi untuk deskripsi dengan delay 0.3 detik agar muncul bergantian
+                    'fade-in-up-delay': 'fade-in-up 0.8s ease-out 1s forwards',
+                }
+            }
+        }
+    }
+</script>
 </head>
 <body class="bg-gray-50 font-sans antialiased">
 
@@ -59,16 +80,70 @@
         </div>
     </nav>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-        <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-8 text-white shadow-lg relative overflow-hidden">
-            <div class="relative z-10 max-w-lg">
-                <span class="bg-indigo-500/30 text-indigo-200 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">E-Commerce Multi Vendor</span>
-                <h1 class="text-3xl font-black mt-2 leading-tight">Selamat Datang di Jual-In Jelajahi Produk Terbaik</h1>
-                <p class="text-indigo-100 text-sm mt-2 opacity-90">Uji coba simulasi checkout dari berbagai toko vendor yang berbeda secara langsung dalam satu keranjang belanja terintegrasi.</p>
-            </div>
-            <div class="absolute right-0 bottom-0 top-0 w-1/3 bg-white/10 [clip-path:polygon(100%_0,0%_100%,100%_100%)]"></div>
-        </div>
+   <div class="relative bg-white overflow-hidden py-16 sm:py-24">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        
+        <h1 class="opacity-0 animate-fade-in-up text-4xl tracking-tight font-extrabold text-slate-900 sm:text-5xl md:text-6xl">
+            <span class="block">Selamat Datang di <span class="text-indigo-600">Jual-In</span></span>
+            <span class="block mt-2 text-3xl sm:text-4xl text-slate-700">Jelajahi Produk Terbaik</span>
+        </h1>
+        
+        <p class="opacity-0 animate-fade-in-up-delay mt-6 max-w-2xl mx-auto text-base text-slate-500 sm:text-lg md:text-xl md:leading-relaxed">
+            Uji coba simulasi checkout dari berbagai toko vendor yang berbeda secara langsung dalam satu keranjang belanja terintegrasi.
+        </p>
+
     </div>
+    
+</div>
+<form action="{{ url('/') }}" method="GET" style="background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; margin-bottom: 30px;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: flex-end;">
+        
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+            <label style="font-size: 14px; font-weight: 600; color: #374151;">📁 Kategori</label>
+            <select name="kategori" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #d1d5db; font-size: 14px; outline: none;">
+                <option value="">Semua Kategori</option>
+                @foreach($kategoris as $kat)
+                    <option value="{{ $kat->id_kategori }}" {{ request('kategori') == $kat->id_kategori ? 'selected' : '' }}>
+                        {{ $kat->nama_kategori }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+            <label style="font-size: 14px; font-weight: 600; color: #374151;">💰 Harga Min (Rp)</label>
+            <input type="number" name="min_harga" value="{{ request('min_harga') }}" placeholder="Contoh: 10000" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #d1d5db; font-size: 14px; outline: none;">
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+            <label style="font-size: 14px; font-weight: 600; color: #374151;">💸 Harga Max (Rp)</label>
+            <input type="number" name="max_harga" value="{{ request('max_harga') }}" placeholder="Contoh: 500000" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #d1d5db; font-size: 14px; outline: none;">
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+            <label style="font-size: 14px; font-weight: 600; color: #374151;">⭐ Minimal Rating</label>
+            <select name="rating" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #d1d5db; font-size: 14px; outline: none;">
+                <option value="">Semua Rating</option>
+                <option value="5" {{ request('rating') == '5' ? 'selected' : '' }}>⭐⭐⭐⭐⭐ (5) Bintang</option>
+                <option value="4" {{ request('rating') == '4' ? 'selected' : '' }}>⭐⭐⭐⭐ Ke atas (4+)</option>
+                <option value="3" {{ request('rating') == '3' ? 'selected' : '' }}>⭐⭐⭐ Ke atas (3+)</option>
+            </select>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button type="submit" style="flex: 2; background: #2563eb; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; transition: background 0.2s;">
+                🔍 Cari
+            </button>
+            
+            @if(request()->anyFilled(['kategori', 'min_harga', 'max_harga', 'rating']))
+                <a href="{{ url('/') }}" style="flex: 1; text-align: center; background: #ef4444; color: white; text-decoration: none; padding: 10px; border-radius: 6px; font-weight: 600; font-size: 14px;">
+                    🔄 Reset
+                </a>
+            @endif
+        </div>
+
+    </div>
+</form>
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="flex items-center justify-between mb-6">
