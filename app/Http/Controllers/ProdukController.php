@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\VendorApprovedMail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage; // Tambahan wajib untuk manipulasi file gambar
 
 class ProdukController extends Controller
 {
@@ -18,7 +19,6 @@ class ProdukController extends Controller
     public function index(Request $request)
     {
         // 1. Ambil semua list kategori untuk ditampilkan di select option filter
-        // (Sesuaikan nama tabel 'kategori' jika di database kamu berbeda)
         $kategoris = DB::table('kategori')->get(); 
 
         // 2. Mulai query dasar untuk mengambil produk
@@ -39,7 +39,7 @@ class ProdukController extends Controller
             return $q->where('harga', '<=', $request->max_harga);
         });
 
-        // 6. FILTER MINIMAL RATING (Misal: Cari yang rating >= 4)
+        // 6. FILTER MINIMAL RATING
         $query->when($request->filled('rating'), function ($q) use ($request) {
             return $q->where('rating', '>=', $request->rating);
         });
@@ -48,16 +48,14 @@ class ProdukController extends Controller
         $produk = $query->orderBy('id_produk', 'desc')->get();
 
         // 8. Kirim data produk dan kategori ke halaman view utama
-        // (Ganti 'welcome' sesuai dengan nama file view katalog utamamu, misal 'index' atau 'home')
         return view('produk', compact('produk', 'kategoris'));
-    
     }
 
     public function show($id)
     {
         // 1. Ambil data produk berdasarkan ID
         $produk = DB::table('produk')
-            ->join('vendors', 'produk.id_vendor', '=', 'vendors.id_vendor') // Opsional: gabung ke vendor untuk nama toko
+            ->join('vendors', 'produk.id_vendor', '=', 'vendors.id_vendor')
             ->where('id_produk', $id)
             ->first();
 
@@ -66,13 +64,12 @@ class ProdukController extends Controller
         }
 
         // 2. Ambil daftar ulasan dari tabel item_order
-        // Kita join sampai ke tabel users agar tahu siapa yang memberi ulasan
         $ulasanList = DB::table('item_order')
             ->join('detail_order', 'item_order.id_detail_order', '=', 'detail_order.id_detail_order')
             ->join('orders', 'detail_order.id_order', '=', 'orders.id_order')
             ->join('users', 'orders.id_user', '=', 'users.id')
             ->where('item_order.id_produk', $id)
-            ->whereNotNull('item_order.ulasan') // Hanya ambil yang ada ulasannya
+            ->whereNotNull('item_order.ulasan')
             ->select('users.name', 'item_order.rating_diberikan', 'item_order.ulasan', 'item_order.updated_at')
             ->orderBy('item_order.updated_at', 'desc')
             ->get();
@@ -95,20 +92,19 @@ class ProdukController extends Controller
     }
 
     // Tampilan Dashboard Admin CRUD (Level 2)
-public function adminIndex()
+    public function adminIndex()
     {
-        // 1. Ambil ID User yang sedang login (Andi = ID 5)
+        // 1. Ambil ID User yang sedang login
         $id_user_login = Auth::id(); 
         
-        // 2. Cari id_vendor asli milik Andi di tabel vendors
+        // 2. Cari id_vendor asli di tabel vendors
         $data_vendor = DB::table('vendors')->where('id_user', $id_user_login)->first();
         
-        // Antisipasi jika akun belum terdaftar di tabel vendors agar tidak error screen hitam
+        // Antisipasi jika akun belum terdaftar
         if (!$data_vendor) {
             return "Akun Anda (" . Auth::user()->name . ") belum terdaftar di tabel 'vendors'. Pastikan data relasinya sudah ada di database.";
         }
 
-        // Ini id_vendor asli (misal nilainya 4)
         $id_vendor = $data_vendor->id_vendor; 
 
         // 3. Mengambil semua daftar produk milik vendor ini
@@ -145,7 +141,7 @@ public function adminIndex()
         $vendors = DB::table('vendors')->get();
 
         // 8. Ambil Data Detail Pesanan Untuk Tabel
-     $daftar_pesanan = DB::table('detail_order')
+        $daftar_pesanan = DB::table('detail_order')
             ->join('orders', 'detail_order.id_order', '=', 'orders.id_order')
             ->join('users', 'orders.id_user', '=', 'users.id') 
             ->select('detail_order.*', 'orders.tanggal_order', 'orders.alamat_pengiriman', 'users.name as nama_pembeli')
@@ -153,7 +149,7 @@ public function adminIndex()
             ->orderBy('orders.tanggal_order', 'desc')
             ->get();
 
-    // 9. Ambil Semua Ulasan Produk Milik Vendor Ini (BARIS INI YANG SEBELUMNYA HILANG)
+        // 9. Ambil Semua Ulasan Produk Milik Vendor Ini
         $daftar_ulasan = DB::table('ulasan')
             ->join('produk', 'ulasan.id_produk', '=', 'produk.id_produk')
             ->join('users', 'ulasan.id_user', '=', 'users.id') 
@@ -162,10 +158,10 @@ public function adminIndex()
             ->orderBy('ulasan.created_at', 'desc')
             ->get();
 
-        // PAKAI RETURN VIEW YANG INI SAJA (Di paling bawah fungsi adminIndex)
         return view('admin', compact('produk', 'total_penjualan', 'order_masuk', 'produk_terlaris', 'kategori', 'vendors', 'daftar_pesanan', 'daftar_ulasan'));
     }
-     public function store(Request $request)
+
+    public function store(Request $request)
     {
         $request->validate([
             'nama_produk' => 'required|string',
@@ -174,44 +170,34 @@ public function adminIndex()
             'id_kategori' => 'required',
             'deskripsi' => 'required',
             'diskon' => 'nullable|integer|min:0|max:100',
-            'foto_produk' => 'required|image|mimes:jpeg,png,jpg|max:2048', // Maksimal 2MB
+            'foto_produk' => 'required|image|mimes:jpeg,png,jpg,webp|max:2048', 
         ]);
 
-        // Logika Otomatis Menentukan ID Vendor agar tidak kosong lagi:
-       // Logika Otomatis Menentukan ID Vendor agar tidak kosong lagi:
         if (auth()->user()->role == 'admin') {
-            // Jika admin yang tambah, ambil dari dropdown 'id_vendor'
             $id_vendor = $request->id_vendor;
         } else {
-            // Jika VENDOR yang tambah, OTOMATIS cari id_vendornya di tabel vendors berdasarkan siapa yang login
             $vendor = \DB::table('vendors')->where('id_user', auth()->user()->id)->first();
-
-            // Antisipasi jika data vendor belum dibuatkan di database
             if (!$vendor) {
-                // Buat otomatis jika belum ada dan simpan ID barunya
                 $id_vendor = \DB::table('vendors')->insertGetId([
                     'id_user' => auth()->user()->id,
                     'nama_toko' => auth()->user()->name,
-                    'pemilik' => auth()->user()->name, // <-- Wajib ada
+                    'pemilik' => auth()->user()->name, 
                 ], 'id_vendor');
             } else {
-                // JIKA VENDOR SUDAH ADA, baru kita ambil ID-nya dari database
                 $id_vendor = $vendor->id_vendor; 
             }
         }
 
-        // Proses Upload Foto
         $nama_file = time() . '.' . $request->foto_produk->extension();
         $request->foto_produk->storeAs('public/produk', $nama_file);
 
-        // Simpan ke database (Sesuaikan dengan nama Model/Tabel Produkmu)
         \DB::table('produk')->insert([
             'nama_produk' => $request->nama_produk,
             'foto_produk' => $nama_file,
             'harga' => $request->harga,
             'diskon' => $request->diskon ?? 0,
             'stok' => $request->stok,
-            'id_vendor' => $id_vendor, // Sudah aman terisi otomatis!
+            'id_vendor' => $id_vendor, 
             'id_kategori' => $request->id_kategori,
             'deskripsi' => $request->deskripsi,
         ]);
@@ -219,7 +205,7 @@ public function adminIndex()
         return redirect('/seller/dashboard')->with('success', 'Produk berhasil ditambahkan!');
     }
 
-// Menampilkan Halaman Form Edit Produk
+    // Menampilkan Halaman Form Edit Produk
     public function edit($id)
     {
         $produk = Produk::findOrFail($id);
@@ -237,23 +223,53 @@ public function adminIndex()
         return view('edit_produk', compact('produk', 'kategori'));
     }
 
-    // Memproses Data Update (Ini yang akan memicu Trigger!)
+    // Memproses Data Update (Ini yang memicu update data & gambar)
     public function update(Request $request, $id)
     {
+        // Menyusun UX Writing (Pesan Error yang Ramah, Jelas, & Solutif)
+        $messages = [
+            'foto_produk.max' => 'Oops! Ukuran foto kamu terlalu besar nih (maksimal 3 MB). Yuk, kompres sedikit fotonya menggunakan situs seperti tinypng.com atau iloveimg.com, lalu coba unggah lagi ya! 😊',
+            'foto_produk.image' => 'File yang kamu pilih sepertinya bukan gambar. Pastikan formatnya benar ya!',
+            'foto_produk.mimes' => 'Format foto tidak didukung. Gunakan format JPEG, PNG, JPG, atau WEBP ya.',
+        ];
+
         $request->validate([
             'nama_produk' => 'required|string',
             'harga' => 'required|numeric',
             'stok' => 'required|integer',
-        ]);
+            'deskripsi' => 'required',
+            'foto_produk' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:3072', // Validasi file gambar baru (Max 3MB)
+        ], $messages); // Menyuntikkan pesan custom ke dalam validasi
 
-        // Update ke database
-        \DB::table('produk')->where('id_produk', $id)->update([
+        $produk = \DB::table('produk')->where('id_produk', (int)$id)->first();
+        if (!$produk) return redirect('/admin')->with('error', 'Produk tidak ditemukan');
+
+        // Menyiapkan array data yang akan diupdate
+        $dataUpdate = [
             'nama_produk' => $request->nama_produk,
             'harga' => $request->harga,
             'stok' => $request->stok,
             'deskripsi' => $request->deskripsi,
-            // (Foto tidak wajib diupdate dulu agar simpel)
-        ]);
+        ];
+
+        // Jika user mengunggah foto baru
+        if ($request->hasFile('foto_produk')) {
+            // Hapus foto lama dari Storage agar tidak menumpuk
+            if ($produk->foto_produk && Storage::exists('public/produk/' . $produk->foto_produk)) {
+                Storage::delete('public/produk/' . $produk->foto_produk);
+            }
+
+            // Generate nama unik dan simpan foto baru
+            $file = $request->file('foto_produk');
+            $nama_file = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $file->storeAs('public/produk', $nama_file);
+            
+            // Masukkan nama file baru ke dalam array update
+            $dataUpdate['foto_produk'] = $nama_file;
+        }
+
+        // Eksekusi Update ke Database
+        \DB::table('produk')->where('id_produk', (int)$id)->update($dataUpdate);
 
         return redirect('/seller/dashboard')->with('success', 'Produk berhasil diperbarui!');
     }
@@ -263,15 +279,18 @@ public function adminIndex()
     {
         $produk = Produk::findOrFail($id);
         
-        // PENGAMANAN TAMBAHAN: Cegah Vendor nakal menghapus lewat URL
         $user = auth()->user();
         if ($user->role != 'admin') {
             $vendorLogin = \DB::table('vendors')->where('id_user', $user->id)->first();
             
-            // Jika id_vendor di produk TIDAK SAMA dengan id_vendor yang login, TOLAK!
             if (!$vendorLogin || $produk->id_vendor != $vendorLogin->id_vendor) {
                 return redirect('/admin')->withErrors(['pesan' => 'Akses ditolak! Anda tidak berhak menghapus produk toko lain.']);
             }
+        }
+
+        // Opsional: Hapus juga gambarnya dari server saat produk dihapus
+        if ($produk->foto_produk && Storage::exists('public/produk/' . $produk->foto_produk)) {
+            Storage::delete('public/produk/' . $produk->foto_produk);
         }
 
         $produk->delete();

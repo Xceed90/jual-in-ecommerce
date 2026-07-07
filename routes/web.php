@@ -33,7 +33,6 @@ Route::get('/keranjang/update-qty/{id}', [KeranjangController::class, 'updateQty
 // --- FITUR YANG BUTUH LOGIN (AMAN TERKUNCI) ---
 Route::middleware('auth')->group(function () {
     
-
     // ==========================================
     // 1. RUTE KHUSUS SUPER ADMIN
     // ==========================================
@@ -43,22 +42,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/komisi', [AdminController::class, 'kelolaKomisi']);
     Route::get('/orders/export-csv', [OrderController::class, 'exportCSV']);
 
-    
     // ==========================================
     // 2. RUTE PEMBELI (USER)
     // ==========================================
     Route::post('/checkout', [OrderController::class, 'checkout']);
     Route::get('/orders', [OrderController::class, 'index']);
-    // 👇 BARIS INI (Tambahkan name di ujungnya) 👇
     Route::post('/orders/rating/{id_detail_order}/{id_produk}', [OrderController::class, 'beriRating'])->name('beri.rating');
     Route::post('/orders/bayar/{id_order}', [OrderController::class, 'bayarSimulasi']);
     Route::post('/orders/selesai/{id_order}', [OrderController::class, 'terimaPesanan']);
 
-    
     // ==========================================
     // 3. RUTE DASHBOARD VENDOR (SELLER)
     // ==========================================
-    // 💡 INI YANG TADI BIKIN 404, SUDAH SAYA PERBAIKI:
     Route::get('/seller/dashboard', [ProdukController::class, 'adminIndex']); 
     Route::post('/admin/store', [ProdukController::class, 'store']);
     Route::get('/admin/delete/{id}', [ProdukController::class, 'destroy']);
@@ -68,10 +63,7 @@ Route::middleware('auth')->group(function () {
     // --- LAPORAN PENJUALAN VENDOR ---
     Route::get('/vendor/laporan', [\App\Http\Controllers\OrderController::class, 'laporanVendor'])->name('vendor.laporan');
     Route::get('/vendor/laporan/export', [\App\Http\Controllers\OrderController::class, 'exportLaporanVendor'])->name('vendor.laporan.export');
-
-
 });
-
 
 // --- FITUR LOGOUT & RESET PASSWORD ---
 Route::post('/logout', function () {
