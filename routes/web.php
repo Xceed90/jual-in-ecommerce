@@ -57,6 +57,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/seller/dashboard', [ProdukController::class, 'adminIndex']); 
     Route::post('/admin/store', [ProdukController::class, 'store']);
     Route::get('/admin/delete/{id}', [ProdukController::class, 'destroy']);
+    Route::post('/admin/produk/delete-bulk', [ProdukController::class, 'destroyBulk']); // RUTE BARU UNTUK HAPUS MASSAL
     Route::get('/produk/edit/{id}', [ProdukController::class, 'edit']);
     Route::post('/produk/update/{id}', [ProdukController::class, 'update']);
 
