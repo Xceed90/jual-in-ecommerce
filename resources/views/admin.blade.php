@@ -48,6 +48,13 @@
             </div>
         @endif
 
+        @if($errors->any())
+            <div class="bg-rose-50 text-rose-700 p-4 rounded-xl mb-8 font-medium shadow-sm border border-rose-100 flex items-center gap-3 animate-pulse">
+                <svg class="w-5 h-5 text-rose-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>
+                {{ $errors->first() }}
+            </div>
+        @endif
+
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900">Halo, {{ auth()->user()->name }}</h1>
@@ -176,25 +183,20 @@
                 </div>
 
             </div>
-            <div class="mb-6">
-                </ul>
-                </div>
-
-            </div>
 
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-4 gap-4">
-            <div>
-                <h2 class="text-xl font-bold text-gray-800">📦 Daftar Pesanan Masuk</h2>
-                <p class="text-sm text-gray-500 mt-1">Pantau dan proses pesanan dari pelanggan Anda.</p>
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800">📦 Daftar Pesanan Masuk</h2>
+                    <p class="text-sm text-gray-500 mt-1">Pantau dan proses pesanan dari pelanggan Anda.</p>
+                </div>
+                
+                <a href="{{ route('vendor.laporan.export') }}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-5 rounded-xl text-sm transition flex items-center gap-2 shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Ekspor ke Excel (.CSV)
+                </a>
             </div>
-            
-            <a href="{{ route('vendor.laporan.export') }}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-5 rounded-xl text-sm transition flex items-center gap-2 shadow-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Ekspor ke Excel (.CSV)
-            </a>
-        </div>
 
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-12">
                 <div class="overflow-x-auto">
@@ -241,6 +243,7 @@
                     </table>
                 </div>
             </div>
+
             <div class="mb-6">
                 <h2 class="text-lg font-bold text-slate-900">Tambahkan Produk Baru</h2>
                 <p class="text-sm text-slate-500">Isi detail produk untuk ditampilkan di etalase toko Anda.</p>
@@ -275,7 +278,6 @@
                         <select name="id_kategori" required class="w-full border border-slate-300 px-4 py-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow outline-none">
                             <option value="" disabled selected>Pilih kategori yang sesuai</option>
                             @foreach($kategori as $k)
-                                <!-- KEMBALIKAN KODE OPTION INI: -->
                                 <option value="{{ $k->id_kategori }}">{{ $k->nama_kategori }}</option>
                             @endforeach
                         </select>
@@ -346,126 +348,181 @@
                 <h2 class="text-lg font-bold text-slate-900">Inventaris Produk</h2>
                 <p class="text-sm text-slate-500">Kelola semua produk yang tersedia di sistem.</p>
             </div>
+            
+            <button type="submit" form="bulkDeleteForm" id="btnHapusMassal" onclick="return confirm('Apakah Anda yakin ingin menghapus semua produk yang dipilih secara permanen?');" class="hidden bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 px-5 rounded-xl text-sm transition items-center gap-2 shadow-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                Hapus Terpilih
+            </button>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 font-semibold">
-                            <th class="p-4 px-6">Informasi Produk</th>
-                            <th class="p-4 px-6">Toko / Vendor</th>
-                            <th class="p-4 px-6">Harga Final</th>
-                            <th class="p-4 px-6 text-center">Stok</th>
-                            <th class="p-4 px-6 text-right">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="text-sm divide-y divide-slate-100">
-                        @foreach($produk as $p)
-                        <tr class="hover:bg-slate-50/70 transition-colors group">
-                            
-                            <td class="p-4 px-6">
-                                <div class="flex items-center gap-4">
-                                    @if(isset($p->foto_produk))
-                                        <div class="w-14 h-14 rounded-xl border border-slate-200 overflow-hidden flex-shrink-0 bg-slate-50">
-                                            <img src="{{ asset('storage/produk/' . $p->foto_produk) }}" class="w-full h-full object-cover" alt="{{ $p->nama_produk }}">
+        <form action="{{ url('/admin/produk/delete-bulk') }}" method="POST" id="bulkDeleteForm">
+            @csrf
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 font-semibold">
+                                <th class="p-4 px-6 w-10 text-center">
+                                    <input type="checkbox" id="selectAll" class="w-4 h-4 text-indigo-600 bg-white border-slate-300 rounded focus:ring-indigo-500 cursor-pointer shadow-sm">
+                                </th>
+                                <th class="p-4 px-6">Informasi Produk</th>
+                                <th class="p-4 px-6">Toko / Vendor</th>
+                                <th class="p-4 px-6">Harga Final</th>
+                                <th class="p-4 px-6 text-center">Stok</th>
+                                <th class="p-4 px-6 text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm divide-y divide-slate-100">
+                            @foreach($produk as $p)
+                            <tr class="hover:bg-slate-50/70 transition-colors group">
+                                
+                                <td class="p-4 px-6 text-center">
+                                    <input type="checkbox" name="ids[]" value="{{ $p->id_produk }}" class="product-checkbox w-4 h-4 text-indigo-600 bg-white border-slate-300 rounded focus:ring-indigo-500 cursor-pointer shadow-sm">
+                                </td>
+
+                                <td class="p-4 px-6">
+                                    <div class="flex items-center gap-4">
+                                        @if(isset($p->foto_produk))
+                                            <div class="w-14 h-14 rounded-xl border border-slate-200 overflow-hidden flex-shrink-0 bg-slate-50">
+                                                <img src="{{ asset('storage/produk/' . $p->foto_produk) }}" class="w-full h-full object-cover" alt="{{ $p->nama_produk }}">
+                                            </div>
+                                        @else
+                                            <div class="w-14 h-14 rounded-xl border border-slate-200 flex items-center justify-center bg-slate-50 flex-shrink-0">
+                                                <svg class="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                            </div>
+                                        @endif
+                                        <div>
+                                            <span class="block font-semibold text-slate-900">{{ $p->nama_produk }}</span>
+                                            <span class="text-xs text-slate-400 mt-0.5 block">ID: {{ $p->id_produk ?? 'N/A' }}</span>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td class="p-4 px-6 text-slate-600">
+                                    <div class="flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                                        {{ $p->vendor->nama_toko ?? 'Internal' }}
+                                    </div>
+                                </td>
+
+                                <td class="p-4 px-6">
+                                    @if(isset($p->diskon) && $p->diskon > 0)
+                                        <div class="flex flex-col">
+                                            <div class="flex items-center gap-2">
+                                                @php
+                                                    $hargaDiskon = $p->harga - ($p->harga * ($p->diskon / 100));
+                                                @endphp
+                                                <span class="font-bold text-slate-900">Rp {{ number_format($hargaDiskon, 0, ',', '.') }}</span>
+                                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-600 border border-rose-200">
+                                                    -{{ $p->diskon }}%
+                                                </span>
+                                            </div>
+                                            <span class="text-xs line-through text-slate-400 mt-0.5">Rp {{ number_format($p->harga, 0, ',', '.') }}</span>
                                         </div>
                                     @else
-                                        <div class="w-14 h-14 rounded-xl border border-slate-200 flex items-center justify-center bg-slate-50 flex-shrink-0">
-                                            <svg class="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                        </div>
+                                        <span class="font-bold text-slate-900">Rp {{ number_format($p->harga, 0, ',', '.') }}</span>
                                     @endif
-                                    <div>
-                                        <span class="block font-semibold text-slate-900">{{ $p->nama_produk }}</span>
-                                        <span class="text-xs text-slate-400 mt-0.5 block">ID: {{ $p->id_produk ?? 'N/A' }}</span>
-                                    </div>
+                                </td>
+                                    
+                                <td class="p-4 px-6 text-center">
+                                    <span class="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-semibold {{ $p->stok > 0 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100' }}">
+                                        {{ $p->stok }} Tersedia
+                                    </span>
+                                </td>
+                                <td class="p-4 px-6 text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    <a href="{{ url('/produk/edit/' . $p->id_produk) }}" 
+                                    class="inline-flex items-center justify-center text-amber-500 hover:text-white bg-transparent hover:bg-amber-500 font-medium text-sm p-2 rounded-lg transition-all border border-transparent hover:border-amber-600">
+                                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                        Edit
+                                    </a>
+
+                                    <a href="{{ url('/admin/delete/' . $p->id_produk) }}" 
+                                    onclick="return confirm('Apakah Anda yakin ingin menghapus produk ini permanen?');" 
+                                    class="inline-flex items-center justify-center text-rose-500 hover:text-white bg-transparent hover:bg-rose-500 font-medium text-sm p-2 rounded-lg transition-all border border-transparent hover:border-rose-600">
+                                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        Hapus
+                                    </a>
                                 </div>
                             </td>
-
-                            <td class="p-4 px-6 text-slate-600">
-                                <div class="flex items-center gap-2">
-                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                                    {{ $p->vendor->nama_toko ?? 'Internal' }}
-                                </div>
-                            </td>
-
-                            <td class="p-4 px-6">
-                                @if(isset($p->diskon) && $p->diskon > 0)
-                                    <div class="flex flex-col">
-                                        <div class="flex items-center gap-2">
-                                            @php
-                                                $hargaDiskon = $p->harga - ($p->harga * ($p->diskon / 100));
-                                            @endphp
-                                            <span class="font-bold text-slate-900">Rp {{ number_format($hargaDiskon, 0, ',', '.') }}</span>
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-600 border border-rose-200">
-                                                -{{ $p->diskon }}%
-                                            </span>
-                                        </div>
-                                        <span class="text-xs line-through text-slate-400 mt-0.5">Rp {{ number_format($p->harga, 0, ',', '.') }}</span>
-                                    </div>
-                                @else
-                                    <span class="font-bold text-slate-900">Rp {{ number_format($p->harga, 0, ',', '.') }}</span>
-                                @endif
-                            </td>
-                                
-                            <td class="p-4 px-6 text-center">
-                                <span class="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-semibold {{ $p->stok > 0 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100' }}">
-                                    {{ $p->stok }} Tersedia
-                                </span>
-                            </td>
-                            <td class="p-4 px-6 text-right">
-                            <div class="flex items-center justify-end gap-2">
-                                <a href="{{ url('/produk/edit/' . $p->id_produk) }}" 
-                                class="inline-flex items-center justify-center text-amber-500 hover:text-white bg-transparent hover:bg-amber-500 font-medium text-sm p-2 rounded-lg transition-all border border-transparent hover:border-amber-600">
-                                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                    Edit
-                                </a>
-
-                                <a href="{{ url('/admin/delete/' . $p->id_produk) }}" 
-                                onclick="return confirm('Apakah Anda yakin ingin menghapus produk ini permanen?');" 
-                                class="inline-flex items-center justify-center text-rose-500 hover:text-white bg-transparent hover:bg-rose-500 font-medium text-sm p-2 rounded-lg transition-all border border-transparent hover:border-rose-600">
-                                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                    Hapus
-                                </a>
-                            </div>
-                        </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
+        </form>
 
     </main>
 </body>
 <script>
-        function previewImage(input) {
-            const container = document.getElementById('preview-container');
-            const preview = document.getElementById('image-preview');
-            const instruction = document.getElementById('upload-instruction');
+    // === SCRIPT KHUSUS LOGIKA HAPUS MASSAL CHECKBOX ===
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectAllBtn = document.getElementById('selectAll');
+        const checkboxes = document.querySelectorAll('.product-checkbox');
+        const btnHapusMassal = document.getElementById('btnHapusMassal');
 
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-
-                // Proses membaca file gambar dari lokal komputer
-                reader.onload = function(e) {
-                    preview.src = e.target.result; // Pasang gambar ke tag <img>
-                    container.classList.remove('hidden'); // Tampilkan draf foto
-                    instruction.classList.add('opacity-0'); // Sembunyikan teks instruksi biar rapi
-                }
-
-                reader.readAsDataURL(input.files[0]);
+        // Fungsi mengecek apakah minimal ada satu checkbox yang dicentang
+        function toggleBtnHapus() {
+            const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
+            if (anyChecked) {
+                btnHapusMassal.classList.remove('hidden');
+                btnHapusMassal.classList.add('flex');
+            } else {
+                btnHapusMassal.classList.add('hidden');
+                btnHapusMassal.classList.remove('flex');
             }
         }
 
-        function resetUpload() {
-            const input = document.getElementById('foto_produk');
-            const container = document.getElementById('preview-container');
-            const instruction = document.getElementById('upload-instruction');
-            
-            input.value = ""; // Reset isi input file menjadi kosong kembali
-            container.classList.add('hidden'); // Sembunyikan draf foto
-            instruction.classList.remove('opacity-0'); // Munculkan kembali teks instruksi bawaan
+        // Logic saat Master Checkbox (Select All) di klik
+        if (selectAllBtn) {
+            selectAllBtn.addEventListener('change', function() {
+                checkboxes.forEach(cb => {
+                    cb.checked = this.checked;
+                });
+                toggleBtnHapus();
+            });
         }
-    </script>
+
+        // Logic saat setiap individu Checkbox di klik
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', function() {
+                // Centang Select All otomatis jika semua individu sudah dicentang
+                const allChecked = Array.from(checkboxes).every(c => c.checked);
+                selectAllBtn.checked = allChecked;
+                toggleBtnHapus();
+            });
+        });
+    });
+
+    // === SCRIPT LAMA TETAP DIPERTAHANKAN UTUH ===
+    function previewImage(input) {
+        const container = document.getElementById('preview-container');
+        const preview = document.getElementById('image-preview');
+        const instruction = document.getElementById('upload-instruction');
+
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+
+            // Proses membaca file gambar dari lokal komputer
+            reader.onload = function(e) {
+                preview.src = e.target.result; // Pasang gambar ke tag <img>
+                container.classList.remove('hidden'); // Tampilkan draf foto
+                instruction.classList.add('opacity-0'); // Sembunyikan teks instruksi biar rapi
+            }
+
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function resetUpload() {
+        const input = document.getElementById('foto_produk');
+        const container = document.getElementById('preview-container');
+        const instruction = document.getElementById('upload-instruction');
+        
+        input.value = ""; // Reset isi input file menjadi kosong kembali
+        container.classList.add('hidden'); // Sembunyikan draf foto
+        instruction.classList.remove('opacity-0'); // Munculkan kembali teks instruksi bawaan
+    }
+</script>
 </html>
