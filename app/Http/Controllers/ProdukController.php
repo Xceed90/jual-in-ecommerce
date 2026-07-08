@@ -297,46 +297,4 @@ class ProdukController extends Controller
 
         return redirect('/seller/dashboard')->with('success', 'Produk berhasil dihapus!');
     }
-
-    // Proses Hapus Massal Produk (Tambahan Baru)
-    public function destroyBulk(Request $request)
-    {
-        $ids = $request->ids; // Array ID produk yang dikirim dari checkbox
-
-        if (!$ids || empty($ids)) {
-            return redirect('/seller/dashboard')->withErrors(['pesan' => 'Pilih minimal satu produk untuk dihapus.']);
-        }
-
-        $user = auth()->user();
-        $vendorLogin = null;
-
-        // Ambil data vendor jika yang login bukan admin
-        if ($user->role != 'admin') {
-            $vendorLogin = \DB::table('vendors')->where('id_user', $user->id)->first();
-            if (!$vendorLogin) {
-                return redirect('/admin')->withErrors(['pesan' => 'Akses ditolak! Data vendor tidak ditemukan.']);
-            }
-        }
-
-        // Ambil semua produk yang sesuai dengan ID yang dicentang
-        $produkList = Produk::whereIn('id_produk', $ids)->get();
-
-        foreach ($produkList as $produk) {
-            // PENGAMANAN: Pastikan yang menghapus adalah pemiliknya atau admin
-            if ($user->role != 'admin') {
-                if ($produk->id_vendor != $vendorLogin->id_vendor) {
-                    continue; // Lewati produk yang bukan milik vendor ini
-                }
-            }
-
-            // Hapus gambar dari storage agar server tidak penuh
-            if ($produk->foto_produk && Storage::exists('public/produk/' . $produk->foto_produk)) {
-                Storage::delete('public/produk/' . $produk->foto_produk);
-            }
-
-            $produk->delete();
-        }
-
-        return redirect('/seller/dashboard')->with('success', 'Produk yang dipilih berhasil dihapus secara massal!');
-    }
 }
