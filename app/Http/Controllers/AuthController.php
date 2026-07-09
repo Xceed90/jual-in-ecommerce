@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User; // Wajib ditambahkan
 use Illuminate\Support\Facades\Hash; // Wajib ditambahkan
+use Illuminate\Validation\Rules\Password; // Tambahan untuk keamanan password
 
 class AuthController extends Controller
 {
@@ -51,16 +52,45 @@ class AuthController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6',
+            'email' => [
+                'required', 
+                'string', 
+                'email:rfc,dns', 
+                'max:255', 
+                'unique:users',
+                function ($attribute, $value, $fail) {
+                    $blockedDomains = ['gnail.com', 'gamil.com', 'gmal.com', 'yaho.com', 'ymail.com', 'gmail.com.id'];
+                    $domain = substr(strrchr($value, "@"), 1);
+                    if (in_array(strtolower($domain), $blockedDomains)) {
+                        $fail('Domain email (' . $domain . ') dicurigai sebagai salah ketik (typo). Harap periksa kembali email Anda demi keamanan.');
+                    }
+                },
+            ],
+            'password' => [
+                'required', 
+                'string', 
+                Password::min(8)
+                    ->letters()
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols()
+            ],
             'role' => 'required|in:user,vendor',
+        ], [
+            'password.min' => 'Kata sandi minimal 8 karakter.',
+            'password.letters' => 'Kata sandi harus mengandung huruf.',
+            'password.mixed' => 'Kata sandi harus mengandung huruf besar dan huruf kecil.',
+            'password.numbers' => 'Kata sandi harus mengandung angka.',
+            'password.symbols' => 'Kata sandi harus mengandung simbol.',
+            'email.dns' => 'Domain email tidak ditemukan atau palsu (tidak valid di internet).',
         ]);
 
         $statusOtomatis = ($request->role == 'vendor') ? 'pending' : 'approved';
+        $namaAman = strip_tags($request->name);
 
         // 1. Buat akun di tabel users
         $user = User::create([
-            'name' => $request->name,
+            'name' => $namaAman,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role,
@@ -70,8 +100,8 @@ class AuthController extends Controller
         if ($request->role == 'vendor') {
             DB::table('vendors')->insert([
                 'id_user' => $user->id,
-                'nama_toko' => $request->name,
-                'pemilik' => $request->name, 
+                'nama_toko' => $namaAman,
+                'pemilik' => $namaAman, 
             ]);
 
             return redirect('/login')->with('success', 'Pendaftaran Vendor berhasil! Akun Anda sedang ditinjau oleh Super Admin.');

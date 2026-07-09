@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Hash;
 
 // --- LOGIN LOGOUT ---
 Route::get('/login', [AuthController::class, 'index'])->name('login');
-Route::post('/login', [AuthController::class, 'authenticate']);
+Route::post('/login', [AuthController::class, 'authenticate'])->middleware('throttle:5,1');
 Route::get('/logout', [AuthController::class, 'logout']);
 
 // --- KATALOG (Bisa diakses siapa saja) ---
@@ -21,7 +21,7 @@ Route::get('/produk/{id}', [ProdukController::class, 'show'])->name('produk.deta
 
 // Rute untuk Registrasi Akun Baru
 Route::get('/register', [AuthController::class, 'showRegister']);
-Route::post('/register', [AuthController::class, 'register']);
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
 
 // Rute Simulasi Keranjang Belanja
 Route::post('/keranjang/add', [KeranjangController::class, 'add']);
