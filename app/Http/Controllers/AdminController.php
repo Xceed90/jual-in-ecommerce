@@ -68,7 +68,7 @@ class AdminController extends Controller
     public function approveVendor($id)
     {
         DB::table('users')->where('id', $id)->update(['status' => 'approved']);
-        return back()->with('success', 'Akses vendor berhasil disetujui!');
+        return redirect('/admin/vendors')->with('success', 'Akses vendor berhasil disetujui!');
     }
 
     // ==========================================
@@ -79,7 +79,7 @@ class AdminController extends Controller
         // Menghapus data vendor dan usernya sekaligus
         DB::table('vendors')->where('id_user', $id)->delete();
         DB::table('users')->where('id', $id)->delete();
-        return back()->with('success', 'Akun vendor berhasil dihapus permanen!');
+        return redirect('/admin/vendors')->with('success', 'Akun vendor berhasil dihapus permanen!');
     }
 
     // ==========================================

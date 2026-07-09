@@ -21,8 +21,8 @@ class ProdukController extends Controller
         // 1. Ambil semua list kategori untuk ditampilkan di select option filter
         $kategoris = DB::table('kategori')->get(); 
 
-        // 2. Mulai query dasar untuk mengambil produk
-        $query = DB::table('produk');
+        // 2. Mulai query dasar untuk mengambil produk — gunakan Eloquent agar relasi ->vendor bisa dipakai di view
+        $query = Produk::with('vendor');
 
         // 3. FILTER KATEGORI (Hanya jalan jika user memilih kategori)
         $query->when($request->filled('kategori'), function ($q) use ($request) {
@@ -88,7 +88,7 @@ class ProdukController extends Controller
         // Kirim Email Notifikasi
         Mail::to($vendor->email)->send(new VendorApprovedMail($vendor->name));
 
-        return redirect('/admin')->with('success', 'Akun vendor berhasil disetujui dan email telah dikirim!');
+        return redirect('/admin/vendors')->with('success', 'Akun vendor berhasil disetujui dan email telah dikirim!');
     }
 
     // Tampilan Dashboard Admin CRUD (Level 2)
@@ -100,63 +100,84 @@ class ProdukController extends Controller
         // 2. Cari id_vendor asli di tabel vendors
         $data_vendor = DB::table('vendors')->where('id_user', $id_user_login)->first();
         
-        // Antisipasi jika akun belum terdaftar
+        // FIX: Jika vendor belum ada di tabel vendors (data lama / race condition),
+        // buat otomatis agar dashboard bisa tampil, bukan menampilkan error mentah.
         if (!$data_vendor) {
-            return "Akun Anda (" . Auth::user()->name . ") belum terdaftar di tabel 'vendors'. Pastikan data relasinya sudah ada di database.";
+            $user = Auth::user();
+            // Hanya auto-create jika rolenya vendor, bukan admin biasa
+            if ($user->role === 'vendor') {
+                $id_vendor_baru = DB::table('vendors')->insertGetId([
+                    'id_user'   => $id_user_login,
+                    'nama_toko' => $user->name . "'s Store",
+                    'pemilik'   => $user->name,
+                ], 'id_vendor');
+                $data_vendor = DB::table('vendors')->where('id_vendor', $id_vendor_baru)->first();
+            } else {
+                // Role admin: tidak perlu vendor record, set id_vendor = null dan lanjutkan
+                $data_vendor = null;
+            }
         }
 
-        $id_vendor = $data_vendor->id_vendor; 
+        $id_vendor = $data_vendor ? $data_vendor->id_vendor : null;
 
-        // 3. Mengambil semua daftar produk milik vendor ini
-        $produk = DB::table('produk')->where('id_vendor', $id_vendor)->get();
+        // 3. Mengambil semua daftar produk milik vendor ini (atau semua jika admin)
+        if ($id_vendor) {
+            $produk = Produk::with('vendor')->where('id_vendor', $id_vendor)->get();
+        } else {
+            $produk = Produk::with('vendor')->get();
+        }
 
         // 4. Hitung TOTAL PENJUALAN
-        $total_penjualan = DB::table('detail_order')
+        $total_penjualan = $id_vendor ? DB::table('detail_order')
             ->join('item_order', 'detail_order.id_detail_order', '=', 'item_order.id_detail_order')
             ->where('detail_order.id_vendor', $id_vendor)
             ->where('detail_order.status_order', 'selesai')
-            ->sum(DB::raw('item_order.harga_saat_beli * item_order.jumlah_beli'));
+            ->sum(DB::raw('item_order.harga_saat_beli * item_order.jumlah_beli')) : 0;
 
         // 5. Hitung ORDER MASUK (Order Aktif)
-        $order_masuk = DB::table('detail_order')
+        $order_masuk = $id_vendor ? DB::table('detail_order')
             ->where('id_vendor', $id_vendor)
             ->whereIn('status_order', [
                 'menunggu pembayaran', 'menunggu_pembayaran', 
                 'pending', 'diproses', 'di_proses'
             ])
-            ->count();
+            ->count() : 0;
 
         // 6. Cari PRODUK TERLARIS
-        $produk_terlaris = DB::table('item_order')
+        $produk_terlaris = $id_vendor ? DB::table('item_order')
             ->join('produk', 'item_order.id_produk', '=', 'produk.id_produk')
             ->select('produk.nama_produk', 'produk.foto_produk', DB::raw('SUM(item_order.jumlah_beli) as total_terjual'))
             ->where('produk.id_vendor', $id_vendor)
             ->groupBy('produk.id_produk', 'produk.nama_produk', 'produk.foto_produk')
             ->orderBy('total_terjual', 'desc')
             ->limit(5)
-            ->get();
+            ->get() : collect();
 
         // 7. Ambil data untuk Form Tambah Produk
         $kategori = DB::table('kategori')->get();
         $vendors = DB::table('vendors')->get();
 
         // 8. Ambil Data Detail Pesanan Untuk Tabel
-        $daftar_pesanan = DB::table('detail_order')
+        $daftar_pesanan = $id_vendor ? DB::table('detail_order')
             ->join('orders', 'detail_order.id_order', '=', 'orders.id_order')
             ->join('users', 'orders.id_user', '=', 'users.id') 
             ->select('detail_order.*', 'orders.tanggal_order', 'orders.alamat_pengiriman', 'users.name as nama_pembeli')
             ->where('detail_order.id_vendor', $id_vendor)
             ->orderBy('orders.tanggal_order', 'desc')
-            ->get();
+            ->get() : collect();
 
-        // 9. Ambil Semua Ulasan Produk Milik Vendor Ini
-        $daftar_ulasan = DB::table('ulasan')
-            ->join('produk', 'ulasan.id_produk', '=', 'produk.id_produk')
-            ->join('users', 'ulasan.id_user', '=', 'users.id') 
-            ->select('ulasan.*', 'produk.nama_produk', 'produk.foto_produk', 'users.name as nama_pembeli')
+               // 9. Ambil Semua Ulasan Produk Milik Vendor Ini (dari item_order)
+        $daftar_ulasan = $id_vendor ? DB::table('item_order')
+            ->join('produk', 'item_order.id_produk', '=', 'produk.id_produk')
+            ->join('detail_order', 'item_order.id_detail_order', '=', 'detail_order.id_detail_order')
+            ->join('orders', 'detail_order.id_order', '=', 'orders.id_order')
+            ->join('users', 'orders.id_user', '=', 'users.id')
+            ->select('item_order.ulasan as komentar', 'item_order.rating_diberikan as rating', 'item_order.updated_at as created_at', 'produk.nama_produk', 'produk.foto_produk', 'users.name as nama_pembeli')
             ->where('produk.id_vendor', $id_vendor)
-            ->orderBy('ulasan.created_at', 'desc')
-            ->get();
+            ->whereNotNull('item_order.ulasan')
+            ->whereNotNull('item_order.ulasan')
+            ->orderBy('item_order.updated_at', 'desc')
+            ->get() : collect();
 
         return view('admin', compact('produk', 'total_penjualan', 'order_masuk', 'produk_terlaris', 'kategori', 'vendors', 'daftar_pesanan', 'daftar_ulasan'));
     }
@@ -295,6 +316,6 @@ class ProdukController extends Controller
 
         $produk->delete();
 
-        return redirect('/seller/dashboard')->with('success', 'Produk berhasil dihapus!');
+        return redirect()->back()->with('success', 'Produk berhasil dihapus!');
     }
 }

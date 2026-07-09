@@ -98,9 +98,12 @@
                                     <td class="p-4 px-6 font-semibold text-slate-800">{{ $pv->name }}</td>
                                     <td class="p-4 px-6 text-slate-500">{{ $pv->email }}</td>
                                     <td class="p-4 px-6 text-right">
-                                        <a href="{{ url('/admin/approve/'.$pv->id) }}" class="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2 rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                            Setujui Akun
-                                        </a>
+                                        <form action="{{ url('/admin/vendors/approve/'.$pv->id) }}" method="POST" onsubmit="return confirm('Setujui vendor ini untuk berjualan?');">
+                                            @csrf
+                                            <button type="submit" class="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2 rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                                Setujui Akun
+                                            </button>
+                                        </form>
                                     </td>
                                 </tr>
                                 @endforeach
