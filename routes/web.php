@@ -28,6 +28,7 @@ Route::post('/keranjang/add', [KeranjangController::class, 'add']);
 Route::get('/keranjang', [KeranjangController::class, 'index']);
 Route::get('/keranjang/hapus/{id}', [KeranjangController::class, 'remove']);
 Route::get('/keranjang/update-qty/{id}', [KeranjangController::class, 'updateQty']);
+Route::post('/keranjang/hapus-terpilih', [KeranjangController::class, 'removeSelected'])->name('keranjang.hapus-terpilih');
 
 
 // --- FITUR YANG BUTUH LOGIN (AMAN TERKUNCI) ---
@@ -36,8 +37,9 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     // 1. RUTE KHUSUS SUPER ADMIN
     // ==========================================
-    Route::get('/admin/approve/{id}', [ProdukController::class, 'approveVendor']);
     Route::get('/admin/vendors', [AdminController::class, 'daftarVendor']);
+    Route::post('/admin/vendors/approve/{id}', [AdminController::class, 'approveVendor'])->name('admin.vendor.approve');
+    Route::delete('/admin/vendors/hapus/{id}', [AdminController::class, 'hapusVendor'])->name('admin.vendor.hapus');
     Route::get('/admin/transaksi', [AdminController::class, 'semuaTransaksi']);
     Route::get('/admin/komisi', [AdminController::class, 'kelolaKomisi']);
     Route::get('/orders/export-csv', [OrderController::class, 'exportCSV']);
@@ -45,8 +47,13 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     // 2. RUTE PEMBELI (USER)
     // ==========================================
+    Route::get('/checkout', [OrderController::class, 'showCheckout'])->name('checkout.show');
+    Route::post('/checkout/prepare', [OrderController::class, 'prepareCheckout'])->name('checkout.prepare');
+    Route::post('/checkout/process', [OrderController::class, 'processCheckout'])->name('checkout.process');
     Route::post('/checkout', [OrderController::class, 'checkout']);
-    Route::get('/orders', [OrderController::class, 'index']);
+    Route::post('/checkout/buy-now', [OrderController::class, 'buyNow'])->name('checkout.buy-now');
+    Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+    Route::get('/orders/{id}', [OrderController::class, 'show'])->name('orders.show');
     Route::post('/orders/rating/{id_detail_order}/{id_produk}', [OrderController::class, 'beriRating'])->name('beri.rating');
     Route::post('/orders/bayar/{id_order}', [OrderController::class, 'bayarSimulasi']);
     Route::post('/orders/selesai/{id_order}', [OrderController::class, 'terimaPesanan']);
